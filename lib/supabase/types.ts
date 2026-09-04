@@ -182,3 +182,9 @@ export type Database = {
     CompositeTypes: {};
   };
 };
+
+export type Service = Database["public"]["Tables"]["services"]["Row"];
+export type Tier = Database["public"]["Tables"]["tiers"]["Row"];
+export type Industry = Database["public"]["Tables"]["industries"]["Row"];
+export type PricingRule = Database["public"]["Tables"]["pricing_rules"]["Row"];
+export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
