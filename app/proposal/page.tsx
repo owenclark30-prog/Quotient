@@ -8,6 +8,7 @@ import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
 import { createProposal, getProposalById } from "@/lib/data/proposals";
+import { errorMessage } from "@/lib/errors";
 import type {
   Industry,
   ProposalPricing,
@@ -110,7 +111,7 @@ function ProposalContent() {
         }
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load proposal"
+          errorMessage(err, "Failed to load proposal")
         );
       } finally {
         setLoading(false);
@@ -140,7 +141,7 @@ function ProposalContent() {
       setSaved(true);
       router.replace(`/proposal?id=${created.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save proposal");
+      setError(errorMessage(err, "Failed to save proposal"));
     } finally {
       setSaving(false);
     }

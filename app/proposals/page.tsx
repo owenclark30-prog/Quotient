@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getProposals } from "@/lib/data/proposals";
+import { errorMessage } from "@/lib/errors";
 import { RequireAuth } from "../components/RequireAuth";
 
 type ProposalListItem = Awaited<ReturnType<typeof getProposals>>[number];
@@ -34,7 +35,7 @@ function ProposalsList() {
         setProposals(await getProposals());
       } catch (err) {
         setError(
-          err instanceof Error ? err.message : "Failed to load proposals"
+          errorMessage(err, "Failed to load proposals")
         );
       } finally {
         setLoading(false);

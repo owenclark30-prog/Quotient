@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
+import { errorMessage } from "@/lib/errors";
 import { useAuth } from "../components/AuthProvider";
 
 export default function LoginPage() {
@@ -53,7 +54,7 @@ export default function LoginPage() {
 
       router.replace("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      setError(errorMessage(err, "Something went wrong"));
     } finally {
       setSubmitting(false);
     }

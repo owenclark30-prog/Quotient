@@ -7,6 +7,7 @@ import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
 import { getAgencyName } from "@/lib/data/settings";
+import { errorMessage } from "@/lib/errors";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { supabase } from "@/lib/supabase/client";
 import { AgencySettings } from "./components/AgencySettings";
@@ -69,7 +70,7 @@ function Home() {
         );
         setTierServices(Object.fromEntries(servicesByTier));
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load data");
+        setError(errorMessage(err, "Failed to load data"));
       } finally {
         setLoading(false);
       }
