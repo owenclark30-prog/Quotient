@@ -14,10 +14,21 @@ export async function createProposal(proposal: ProposalInsert) {
   return data;
 }
 
-export async function getProposals() {
+export async function getProposalById(id: string) {
   const { data, error } = await supabase
     .from("proposals")
     .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getProposals() {
+  const { data, error } = await supabase
+    .from("proposals")
+    .select("*, tiers(name)")
     .order("created_at", { ascending: false });
 
   if (error) throw error;

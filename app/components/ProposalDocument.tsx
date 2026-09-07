@@ -1,6 +1,5 @@
 import type { PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { formatGBP, formatSlug } from "@/lib/format";
-import { AGENCY_NAME } from "@/lib/config";
 
 export function ProposalDocument({
   clientName,
@@ -8,6 +7,7 @@ export function ProposalDocument({
   tier,
   services,
   rule,
+  agencyName,
   generatedDate,
 }: {
   clientName: string;
@@ -15,6 +15,7 @@ export function ProposalDocument({
   tier: Tier;
   services: Service[];
   rule: PricingRule;
+  agencyName: string;
   generatedDate: string;
 }) {
   const hasFoundingRate =
@@ -26,7 +27,7 @@ export function ProposalDocument({
   return (
     <article className="proposal">
       <header className="proposal-header">
-        <div className="proposal-agency">{AGENCY_NAME}</div>
+        <div className="proposal-agency">{agencyName}</div>
         <div className="proposal-date">{generatedDate}</div>
       </header>
 
@@ -110,7 +111,7 @@ export function ProposalDocument({
       </section>
 
       <footer className="proposal-footer">
-        Prepared by {AGENCY_NAME} · {generatedDate}
+        Prepared by {agencyName} · {generatedDate}
       </footer>
     </article>
   );

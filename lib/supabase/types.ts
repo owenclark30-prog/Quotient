@@ -140,6 +140,7 @@ export type Database = {
           client_name: string;
           tier_id: string;
           industry_id: string | null;
+          agency_name: string;
           created_at: string;
         };
         Insert: {
@@ -148,6 +149,7 @@ export type Database = {
           client_name: string;
           tier_id: string;
           industry_id?: string | null;
+          agency_name: string;
           created_at?: string;
         };
         Update: {
@@ -156,6 +158,7 @@ export type Database = {
           client_name?: string;
           tier_id?: string;
           industry_id?: string | null;
+          agency_name?: string;
           created_at?: string;
         };
         Relationships: [
@@ -175,6 +178,21 @@ export type Database = {
           },
         ];
       };
+      settings: {
+        Row: {
+          id: string;
+          agency_name: string;
+        };
+        Insert: {
+          id?: string;
+          agency_name?: string;
+        };
+        Update: {
+          id?: string;
+          agency_name?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -188,3 +206,4 @@ export type Tier = Database["public"]["Tables"]["tiers"]["Row"];
 export type Industry = Database["public"]["Tables"]["industries"]["Row"];
 export type PricingRule = Database["public"]["Tables"]["pricing_rules"]["Row"];
 export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
+export type Settings = Database["public"]["Tables"]["settings"]["Row"];

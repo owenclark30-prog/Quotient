@@ -2,59 +2,141 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getAgencyName } from "@/lib/data/settings";
 import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
+import { createProposal, getProposalById } from "@/lib/data/proposals";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { ProposalDocument } from "../components/ProposalDocument";
 
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function ProposalContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const clientName = searchParams.get("client");
-  const tierId = searchParams.get("tier");
-  const industryId = searchParams.get("industry");
+  const proposalId = searchParams.get("id");
+  const clientParam = searchParams.get("client");
+  const tierParam = searchParams.get("tier");
+  const industryParam = searchParams.get("industry");
+
+  const hasValidParams = Boolean(proposalId || (clientParam && tierParam));
+
+  const [clientName, setClientName] = useState<string | null>(null);
+  const [tierId, setTierId] = useState<string | null>(null);
+  const [industryId, setIndustryId] = useState<string | null>(null);
+  const [agencyName, setAgencyName] = useState<string | null>(null);
+  const [documentDate, setDocumentDate] = useState<Date>(new Date());
+  const [saved, setSaved] = useState(false);
 
   const [tier, setTier] = useState<Tier | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [industry, setIndustry] = useState<Industry | null>(null);
   const [rule, setRule] = useState<PricingRule | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (!clientName || !tierId) {
+    if (!hasValidParams) {
       setLoading(false);
       return;
     }
 
     async function load() {
+      setLoading(true);
+      setError(null);
       try {
-        const [tierData, tierServiceRows, pricingRule, industryData] =
-          await Promise.all([
-            getTierById(tierId!),
-            getTierWithServices(tierId!),
-            getPricingRule(tierId!, industryId),
-            industryId ? getIndustryById(industryId) : Promise.resolve(null),
-          ]);
+        if (proposalId) {
+          const proposal = await getProposalById(proposalId);
 
-        setTier(tierData);
-        setServices(
-          tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
-        );
-        setRule(pricingRule);
-        setIndustry(industryData);
+          const [tierData, tierServiceRows, pricingRule, industryData] =
+            await Promise.all([
+              getTierById(proposal.tier_id),
+              getTierWithServices(proposal.tier_id),
+              getPricingRule(proposal.tier_id, proposal.industry_id),
+              proposal.industry_id
+                ? getIndustryById(proposal.industry_id)
+                : Promise.resolve(null),
+            ]);
+
+          setClientName(proposal.client_name);
+          setTierId(proposal.tier_id);
+          setIndustryId(proposal.industry_id);
+          setAgencyName(proposal.agency_name);
+          setDocumentDate(new Date(proposal.created_at));
+          setSaved(true);
+          setTier(tierData);
+          setServices(
+            tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
+          );
+          setRule(pricingRule);
+          setIndustry(industryData);
+        } else if (clientParam && tierParam) {
+          const [tierData, tierServiceRows, pricingRule, industryData, currentAgencyName] =
+            await Promise.all([
+              getTierById(tierParam),
+              getTierWithServices(tierParam),
+              getPricingRule(tierParam, industryParam),
+              industryParam ? getIndustryById(industryParam) : Promise.resolve(null),
+              getAgencyName(),
+            ]);
+
+          setClientName(clientParam);
+          setTierId(tierParam);
+          setIndustryId(industryParam);
+          setAgencyName(currentAgencyName);
+          setDocumentDate(new Date());
+          setSaved(false);
+          setTier(tierData);
+          setServices(
+            tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
+          );
+          setRule(pricingRule);
+          setIndustry(industryData);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load proposal");
+        setError(
+          err instanceof Error ? err.message : "Failed to load proposal"
+        );
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, [clientName, tierId, industryId]);
+  }, [hasValidParams, proposalId, clientParam, tierParam, industryParam]);
 
-  if (!clientName || !tierId) {
+  async function handleSave() {
+    if (!clientName || !tierId || agencyName == null) return;
+
+    setSaving(true);
+    setError(null);
+    try {
+      const created = await createProposal({
+        client_name: clientName,
+        tier_id: tierId,
+        industry_id: industryId,
+        agency_name: agencyName,
+      });
+      setSaved(true);
+      router.replace(`/proposal?id=${created.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save proposal");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!hasValidParams) {
     return (
       <main>
         <div className="empty-state">
@@ -73,10 +155,18 @@ function ProposalContent() {
     );
   }
 
-  if (error || !tier || !rule) {
+  if (error && !tier) {
     return (
       <main>
-        <div className="empty-state">{error ?? "Proposal not found."}</div>
+        <div className="empty-state">{error}</div>
+      </main>
+    );
+  }
+
+  if (!tier || !rule || !clientName || agencyName == null) {
+    return (
+      <main>
+        <div className="empty-state">Proposal not found.</div>
       </main>
     );
   }
@@ -84,15 +174,31 @@ function ProposalContent() {
   return (
     <main>
       <div className="proposal-actions no-print">
-        <Link href="/">&larr; Back to calculator</Link>
-        <button
-          type="button"
-          className="button-primary"
-          onClick={() => window.print()}
-        >
-          Print / Save as PDF
-        </button>
+        <Link href={saved ? "/proposals" : "/"}>
+          &larr; {saved ? "Back to proposals" : "Back to calculator"}
+        </Link>
+        <div className="proposal-action-buttons">
+          {!saved && (
+            <button
+              type="button"
+              className="button-secondary"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? "Saving…" : "Save Proposal"}
+            </button>
+          )}
+          <button
+            type="button"
+            className="button-primary"
+            onClick={() => window.print()}
+          >
+            Print / Save as PDF
+          </button>
+        </div>
       </div>
+
+      {error && <div className="empty-state no-print">{error}</div>}
 
       <ProposalDocument
         clientName={clientName}
@@ -100,11 +206,8 @@ function ProposalContent() {
         tier={tier}
         services={services}
         rule={rule}
-        generatedDate={new Date().toLocaleDateString("en-GB", {
-          day: "numeric",
-          month: "long",
-          year: "numeric",
-        })}
+        agencyName={agencyName}
+        generatedDate={formatDate(documentDate)}
       />
     </main>
   );

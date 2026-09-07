@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
+import { getAgencyName } from "@/lib/data/settings";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
+import { AgencySettings } from "./components/AgencySettings";
 import { ClientNameInput } from "./components/ClientNameInput";
 import { IndustrySelect } from "./components/IndustrySelect";
 import { TierPicker } from "./components/TierPicker";
@@ -19,6 +22,7 @@ export default function Home() {
   const [tierServices, setTierServices] = useState<Record<string, Service[]>>(
     {}
   );
+  const [agencyName, setAgencyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,12 +35,18 @@ export default function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const [industriesData, tiersData, pricingRulesData] =
-          await Promise.all([getIndustries(), getTiers(), getPricingRules()]);
+        const [industriesData, tiersData, pricingRulesData, agencyNameData] =
+          await Promise.all([
+            getIndustries(),
+            getTiers(),
+            getPricingRules(),
+            getAgencyName(),
+          ]);
 
         setIndustries(industriesData);
         setTiers(tiersData);
         setPricingRules(pricingRulesData);
+        setAgencyName(agencyNameData);
 
         const servicesByTier = await Promise.all(
           tiersData.map(async (tier) => {
@@ -111,8 +121,19 @@ export default function Home() {
 
   return (
     <main>
-      <h1>Quotient</h1>
-      <p className="subtitle">Pricing calculator</p>
+      <div className="page-header">
+        <div>
+          <h1>Quotient</h1>
+          <p className="subtitle">Pricing calculator</p>
+        </div>
+        <Link href="/proposals" className="text-link">
+          Past proposals &rarr;
+        </Link>
+      </div>
+
+      <AgencySettings value={agencyName} onSaved={setAgencyName} />
+
+      <hr className="divider" />
 
       <ClientNameInput value={clientName} onChange={setClientName} />
 
