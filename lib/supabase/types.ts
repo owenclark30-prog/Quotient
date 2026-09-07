@@ -141,6 +141,11 @@ export type Database = {
           tier_id: string;
           industry_id: string | null;
           agency_name: string;
+          setup_fee: number;
+          monthly_fee: number;
+          founding_setup_fee: number | null;
+          founding_monthly_fee: number | null;
+          founding_duration_months: number | null;
           created_at: string;
         };
         Insert: {
@@ -150,6 +155,11 @@ export type Database = {
           tier_id: string;
           industry_id?: string | null;
           agency_name: string;
+          setup_fee: number;
+          monthly_fee: number;
+          founding_setup_fee?: number | null;
+          founding_monthly_fee?: number | null;
+          founding_duration_months?: number | null;
           created_at?: string;
         };
         Update: {
@@ -159,6 +169,11 @@ export type Database = {
           tier_id?: string;
           industry_id?: string | null;
           agency_name?: string;
+          setup_fee?: number;
+          monthly_fee?: number;
+          founding_setup_fee?: number | null;
+          founding_monthly_fee?: number | null;
+          founding_duration_months?: number | null;
           created_at?: string;
         };
         Relationships: [
@@ -207,3 +222,13 @@ export type Industry = Database["public"]["Tables"]["industries"]["Row"];
 export type PricingRule = Database["public"]["Tables"]["pricing_rules"]["Row"];
 export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
 export type Settings = Database["public"]["Tables"]["settings"]["Row"];
+
+/** The fee fields a proposal renders. Both a live `PricingRule` and a saved
+ * `Proposal` (which freezes them at save time) satisfy this. */
+export type ProposalPricing = {
+  setup_fee: number;
+  monthly_fee: number;
+  founding_setup_fee: number | null;
+  founding_monthly_fee: number | null;
+  founding_duration_months: number | null;
+};

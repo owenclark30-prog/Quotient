@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema and seed data. Migrations `0001`–`0004` and `seed.sql`
+3. Apply the schema and seed data. Migrations `0001`–`0005` and `seed.sql`
    have already been applied to the live project — this step is only needed
    when setting up a fresh Supabase project.
 
@@ -50,7 +50,7 @@ Next.js (App Router, TypeScript) + Supabase.
 - `tier_services` — join table: which services belong to which tier
 - `industries` — optional vertical (e.g. aesthetics, home services); empty for now
 - `pricing_rules` — setup/monthly fee per tier, optionally scoped to an industry; `industry_id IS NULL` is the generic/default rate. Tier 2 also carries a founding-rate discount for the first 3 months.
-- `proposals` — a saved quote: client name, chosen tier, optional industry, and the agency name snapshotted at save time
+- `proposals` — a saved quote: client name, chosen tier, optional industry, plus the agency name and the full set of fees snapshotted at save time. Reopening a saved proposal renders those frozen numbers, so an edit to `pricing_rules` never changes a proposal that's already been sent.
 - `settings` — single row holding the agency name shown on proposals
 
 ### Access control

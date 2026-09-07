@@ -8,7 +8,12 @@ import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
 import { createProposal, getProposalById } from "@/lib/data/proposals";
-import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
+import type {
+  Industry,
+  ProposalPricing,
+  Service,
+  Tier,
+} from "@/lib/supabase/types";
 import { ProposalDocument } from "../components/ProposalDocument";
 
 function formatDate(date: Date) {
@@ -39,7 +44,7 @@ function ProposalContent() {
   const [tier, setTier] = useState<Tier | null>(null);
   const [services, setServices] = useState<Service[]>([]);
   const [industry, setIndustry] = useState<Industry | null>(null);
-  const [rule, setRule] = useState<PricingRule | null>(null);
+  const [pricing, setPricing] = useState<ProposalPricing | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,15 +63,13 @@ function ProposalContent() {
         if (proposalId) {
           const proposal = await getProposalById(proposalId);
 
-          const [tierData, tierServiceRows, pricingRule, industryData] =
-            await Promise.all([
-              getTierById(proposal.tier_id),
-              getTierWithServices(proposal.tier_id),
-              getPricingRule(proposal.tier_id, proposal.industry_id),
-              proposal.industry_id
-                ? getIndustryById(proposal.industry_id)
-                : Promise.resolve(null),
-            ]);
+          const [tierData, tierServiceRows, industryData] = await Promise.all([
+            getTierById(proposal.tier_id),
+            getTierWithServices(proposal.tier_id),
+            proposal.industry_id
+              ? getIndustryById(proposal.industry_id)
+              : Promise.resolve(null),
+          ]);
 
           setClientName(proposal.client_name);
           setTierId(proposal.tier_id);
@@ -78,7 +81,8 @@ function ProposalContent() {
           setServices(
             tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
           );
-          setRule(pricingRule);
+          // Fees are frozen on the row at save time, not re-resolved.
+          setPricing(proposal);
           setIndustry(industryData);
         } else if (clientParam && tierParam) {
           const [tierData, tierServiceRows, pricingRule, industryData, currentAgencyName] =
@@ -100,7 +104,7 @@ function ProposalContent() {
           setServices(
             tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
           );
-          setRule(pricingRule);
+          setPricing(pricingRule);
           setIndustry(industryData);
         }
       } catch (err) {
@@ -116,7 +120,7 @@ function ProposalContent() {
   }, [hasValidParams, proposalId, clientParam, tierParam, industryParam]);
 
   async function handleSave() {
-    if (!clientName || !tierId || agencyName == null) return;
+    if (!clientName || !tierId || agencyName == null || !pricing) return;
 
     setSaving(true);
     setError(null);
@@ -126,6 +130,11 @@ function ProposalContent() {
         tier_id: tierId,
         industry_id: industryId,
         agency_name: agencyName,
+        setup_fee: pricing.setup_fee,
+        monthly_fee: pricing.monthly_fee,
+        founding_setup_fee: pricing.founding_setup_fee,
+        founding_monthly_fee: pricing.founding_monthly_fee,
+        founding_duration_months: pricing.founding_duration_months,
       });
       setSaved(true);
       router.replace(`/proposal?id=${created.id}`);
@@ -163,7 +172,7 @@ function ProposalContent() {
     );
   }
 
-  if (!tier || !rule || !clientName || agencyName == null) {
+  if (!tier || !pricing || !clientName || agencyName == null) {
     return (
       <main>
         <div className="empty-state">Proposal not found.</div>
@@ -205,7 +214,7 @@ function ProposalContent() {
         industryName={industry?.name ?? null}
         tier={tier}
         services={services}
-        rule={rule}
+        pricing={pricing}
         agencyName={agencyName}
         generatedDate={formatDate(documentDate)}
       />

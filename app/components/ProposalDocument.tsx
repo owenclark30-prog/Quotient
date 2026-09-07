@@ -1,4 +1,4 @@
-import type { PricingRule, Service, Tier } from "@/lib/supabase/types";
+import type { ProposalPricing, Service, Tier } from "@/lib/supabase/types";
 import { formatGBP, formatSlug } from "@/lib/format";
 
 export function ProposalDocument({
@@ -6,7 +6,7 @@ export function ProposalDocument({
   industryName,
   tier,
   services,
-  rule,
+  pricing,
   agencyName,
   generatedDate,
 }: {
@@ -14,15 +14,15 @@ export function ProposalDocument({
   industryName: string | null;
   tier: Tier;
   services: Service[];
-  rule: PricingRule;
+  pricing: ProposalPricing;
   agencyName: string;
   generatedDate: string;
 }) {
   const hasFoundingRate =
-    rule.founding_setup_fee != null || rule.founding_monthly_fee != null;
+    pricing.founding_setup_fee != null || pricing.founding_monthly_fee != null;
 
-  const setupFee = rule.founding_setup_fee ?? rule.setup_fee;
-  const monthlyFee = rule.founding_monthly_fee ?? rule.monthly_fee;
+  const setupFee = pricing.founding_setup_fee ?? pricing.setup_fee;
+  const monthlyFee = pricing.founding_monthly_fee ?? pricing.monthly_fee;
 
   return (
     <article className="proposal">
@@ -76,7 +76,7 @@ export function ProposalDocument({
               <td>Setup fee</td>
               <td>
                 {formatGBP(setupFee)}
-                {rule.founding_setup_fee != null && (
+                {pricing.founding_setup_fee != null && (
                   <>
                     {" "}
                     <span className="proposal-founding-tag">
@@ -90,14 +90,14 @@ export function ProposalDocument({
               <td>Monthly fee</td>
               <td>
                 {formatGBP(monthlyFee)}/mo
-                {rule.founding_monthly_fee != null &&
-                  ` for the first ${rule.founding_duration_months} months`}
+                {pricing.founding_monthly_fee != null &&
+                  ` for the first ${pricing.founding_duration_months} months`}
               </td>
             </tr>
-            {rule.founding_monthly_fee != null && (
+            {pricing.founding_monthly_fee != null && (
               <tr>
-                <td>From month {rule.founding_duration_months! + 1}</td>
-                <td>{formatGBP(rule.monthly_fee)}/mo</td>
+                <td>From month {pricing.founding_duration_months! + 1}</td>
+                <td>{formatGBP(pricing.monthly_fee)}/mo</td>
               </tr>
             )}
           </tbody>
