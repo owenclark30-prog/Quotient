@@ -10,6 +10,17 @@ export async function getTiers() {
   return data;
 }
 
+export async function getTierById(tierId: string) {
+  const { data, error } = await supabase
+    .from("tiers")
+    .select("*")
+    .eq("id", tierId)
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
 export async function getTierWithServices(tierId: string) {
   const { data, error } = await supabase
     .from("tier_services")

@@ -52,7 +52,8 @@ label {
   margin-bottom: 8px;
 }
 
-select {
+select,
+input[type="text"] {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid var(--border);
@@ -60,6 +61,26 @@ select {
   background: var(--surface);
   color: var(--text);
   font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.button-primary {
+  display: inline-block;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 12px 20px;
+  cursor: pointer;
+}
+
+.button-primary:disabled {
+  background: var(--border);
+  color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .tier-grid {
@@ -186,4 +207,200 @@ select {
   border-radius: 10px;
   padding: 20px;
   text-align: center;
+}
+
+.empty-state a {
+  color: var(--text);
+}
+
+/* Proposal document */
+
+.proposal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.proposal-actions a {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.proposal-actions a:hover {
+  color: var(--text);
+}
+
+.proposal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 56px;
+}
+
+.proposal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--text);
+  margin-bottom: 32px;
+}
+
+.proposal-agency {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.proposal-date {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.proposal-title {
+  font-size: 1.9rem;
+  font-weight: 700;
+  margin: 0 0 40px;
+}
+
+.proposal-block {
+  margin-bottom: 32px;
+}
+
+.proposal-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.proposal-client {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.proposal-industry {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.proposal-tier-name {
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.proposal-tier-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.proposal-services {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.proposal-services li {
+  font-size: 0.92rem;
+  padding-left: 20px;
+  position: relative;
+}
+
+.proposal-services li::before {
+  content: "\2713";
+  position: absolute;
+  left: 0;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.proposal-service-name {
+  font-weight: 600;
+}
+
+.proposal-service-desc {
+  color: var(--text-muted);
+}
+
+.proposal-pricing {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.proposal-pricing td {
+  padding: 12px 0;
+  font-size: 0.95rem;
+}
+
+.proposal-pricing tr + tr td {
+  border-top: 1px solid var(--border);
+}
+
+.proposal-pricing td:first-child {
+  color: var(--text-muted);
+}
+
+.proposal-pricing td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
+.proposal-founding-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.proposal-pricing-note {
+  margin: 12px 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.proposal-footer {
+  margin-top: 48px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+@page {
+  margin: 18mm;
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .proposal {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
 }

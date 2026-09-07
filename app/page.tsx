@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
+import { ClientNameInput } from "./components/ClientNameInput";
 import { IndustrySelect } from "./components/IndustrySelect";
 import { TierPicker } from "./components/TierPicker";
 import { PricingSummary } from "./components/PricingSummary";
 
 export default function Home() {
+  const router = useRouter();
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
@@ -19,6 +22,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [clientName, setClientName] = useState("");
   const [selectedIndustryId, setSelectedIndustryId] = useState<string | null>(
     null
   );
@@ -74,6 +78,20 @@ export default function Home() {
     );
   }, [selectedTierId, selectedIndustryId, pricingRules]);
 
+  const canGenerateProposal = clientName.trim().length > 0 && selectedTierId;
+
+  function handleGenerateProposal() {
+    if (!canGenerateProposal || !selectedTierId) return;
+
+    const params = new URLSearchParams({
+      client: clientName.trim(),
+      tier: selectedTierId,
+    });
+    if (selectedIndustryId) params.set("industry", selectedIndustryId);
+
+    router.push(`/proposal?${params.toString()}`);
+  }
+
   if (loading) {
     return (
       <main>
@@ -96,6 +114,8 @@ export default function Home() {
       <h1>Quotient</h1>
       <p className="subtitle">Pricing calculator</p>
 
+      <ClientNameInput value={clientName} onChange={setClientName} />
+
       <IndustrySelect
         industries={industries}
         value={selectedIndustryId}
@@ -110,6 +130,17 @@ export default function Home() {
       />
 
       <PricingSummary rule={selectedRule} />
+
+      <section>
+        <button
+          type="button"
+          className="button-primary"
+          disabled={!canGenerateProposal}
+          onClick={handleGenerateProposal}
+        >
+          Generate Proposal
+        </button>
+      </section>
     </main>
   );
 }
