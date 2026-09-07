@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema and seed data. Migrations `0001`–`0006` and `seed.sql`
+3. Apply the schema and seed data. Migrations `0001`–`0007` and `seed.sql`
    have already been applied to the live project — this step is only needed
    when setting up a fresh Supabase project.
 
