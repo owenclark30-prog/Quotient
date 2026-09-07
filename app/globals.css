@@ -129,6 +129,79 @@ input[type="text"] {
   color: var(--text);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.link-button {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.link-button:hover {
+  color: var(--text);
+}
+
+.auth-main {
+  max-width: 380px;
+}
+
+.auth-form section {
+  margin-bottom: 20px;
+}
+
+.auth-form .button-primary {
+  width: 100%;
+}
+
+.auth-toggle {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.form-error,
+.form-notice {
+  font-size: 0.85rem;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.form-error {
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.form-notice {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
 .divider {
   border: none;
   border-top: 1px solid var(--border);

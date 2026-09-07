@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getProposals } from "@/lib/data/proposals";
+import { RequireAuth } from "../components/RequireAuth";
 
 type ProposalListItem = Awaited<ReturnType<typeof getProposals>>[number];
 
@@ -15,6 +16,14 @@ function formatDate(value: string) {
 }
 
 export default function ProposalsPage() {
+  return (
+    <RequireAuth>
+      <ProposalsList />
+    </RequireAuth>
+  );
+}
+
+function ProposalsList() {
   const [proposals, setProposals] = useState<ProposalListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

@@ -8,13 +8,23 @@ import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
 import { getAgencyName } from "@/lib/data/settings";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
+import { supabase } from "@/lib/supabase/client";
 import { AgencySettings } from "./components/AgencySettings";
 import { ClientNameInput } from "./components/ClientNameInput";
 import { IndustrySelect } from "./components/IndustrySelect";
 import { TierPicker } from "./components/TierPicker";
 import { PricingSummary } from "./components/PricingSummary";
+import { RequireAuth } from "./components/RequireAuth";
 
-export default function Home() {
+export default function HomePage() {
+  return (
+    <RequireAuth>
+      <Home />
+    </RequireAuth>
+  );
+}
+
+function Home() {
   const router = useRouter();
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
@@ -126,9 +136,18 @@ export default function Home() {
           <h1>Quotient</h1>
           <p className="subtitle">Pricing calculator</p>
         </div>
-        <Link href="/proposals" className="text-link">
-          Past proposals &rarr;
-        </Link>
+        <div className="header-actions">
+          <Link href="/proposals" className="text-link">
+            Past proposals &rarr;
+          </Link>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => supabase.auth.signOut()}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       <AgencySettings value={agencyName} onSaved={setAgencyName} />

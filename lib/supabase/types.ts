@@ -136,7 +136,7 @@ export type Database = {
       proposals: {
         Row: {
           id: string;
-          user_id: string | null;
+          user_id: string;
           client_name: string;
           tier_id: string;
           industry_id: string | null;
@@ -150,7 +150,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          user_id?: string | null;
+          user_id: string;
           client_name: string;
           tier_id: string;
           industry_id?: string | null;
@@ -195,15 +195,15 @@ export type Database = {
       };
       settings: {
         Row: {
-          id: string;
+          user_id: string;
           agency_name: string;
         };
         Insert: {
-          id?: string;
-          agency_name?: string;
+          user_id: string;
+          agency_name: string;
         };
         Update: {
-          id?: string;
+          user_id?: string;
           agency_name?: string;
         };
         Relationships: [];

@@ -1,8 +1,8 @@
 # Quotient
 
 Pricing/proposal calculator. Set a tier and client, see live pricing, and
-generate a printable proposal you can save and revisit. No auth yet — the
-agency name is a single global setting and proposals aren't scoped to a user.
+generate a printable proposal you can save and revisit. Email/password auth
+via Supabase Auth; each account has its own agency name and proposals.
 
 ## Stack
 
@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema and seed data. Migrations `0001`–`0007` and `seed.sql`
+3. Apply the schema and seed data. Migrations `0001`–`0008` and `seed.sql`
    have already been applied to the live project — this step is only needed
    when setting up a fresh Supabase project.
 
@@ -51,15 +51,22 @@ Next.js (App Router, TypeScript) + Supabase.
 - `industries` — optional vertical (e.g. aesthetics, home services); empty for now
 - `pricing_rules` — setup/monthly fee per tier, optionally scoped to an industry; `industry_id IS NULL` is the generic/default rate. Tier 2 also carries a founding-rate discount for the first 3 months.
 - `proposals` — a saved quote: client name, chosen tier, optional industry, plus the agency name and the full set of fees snapshotted at save time. Reopening a saved proposal renders those frozen numbers, so an edit to `pricing_rules` never changes a proposal that's already been sent.
-- `settings` — single row holding the agency name shown on proposals
+- `settings` — one row per user (`user_id` PK) holding the agency name shown on their proposals
 
 ### Access control
 
-There's no auth, so migration `0002` grants the `anon` role read access to the
-catalog tables, read/insert on `proposals`, and read/update on `settings`, with
-matching permissive RLS policies. Supabase auto-enables RLS on new tables, so
-any table added later needs its own grants and policies or it will be
-inaccessible to the publishable key.
+The catalog tables (`services`, `tiers`, `tier_services`, `industries`,
+`pricing_rules`) are the shared rate card and stay readable by `anon` and
+`authenticated`, per migration `0002`.
+
+`proposals` and `settings` are per-user. Migration `0008` revokes `anon`
+entirely and scopes both to `(select auth.uid()) = user_id` for select,
+insert, and (settings only) update — so a signed-in user can neither read
+another account's rows nor write a row attributed to someone else. Deleting a
+user cascades to their proposals and settings.
+
+Supabase auto-enables RLS on new tables, so any table added later needs its own
+grants and policies or it will be inaccessible to the publishable key.
 
 ## Data access
 
@@ -71,6 +78,7 @@ Query functions live in `lib/data/*.ts` (`getServices`, `getTiers`,
 
 ## Routes
 
+- `/login` — email/password sign in and sign up (the only public route)
 - `/` — calculator: agency name setting, client name, industry, tier, live pricing
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal

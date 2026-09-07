@@ -1,12 +1,17 @@
 import { supabase } from "@/lib/supabase/client";
+import { getCurrentUserId } from "@/lib/supabase/session";
 import type { Database } from "@/lib/supabase/types";
 
 type ProposalInsert = Database["public"]["Tables"]["proposals"]["Insert"];
 
-export async function createProposal(proposal: ProposalInsert) {
+export async function createProposal(
+  proposal: Omit<ProposalInsert, "user_id">
+) {
+  const userId = await getCurrentUserId();
+
   const { data, error } = await supabase
     .from("proposals")
-    .insert(proposal)
+    .insert({ ...proposal, user_id: userId })
     .select()
     .single();
 

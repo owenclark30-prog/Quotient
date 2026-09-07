@@ -15,6 +15,7 @@ import type {
   Tier,
 } from "@/lib/supabase/types";
 import { ProposalDocument } from "../components/ProposalDocument";
+import { RequireAuth } from "../components/RequireAuth";
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-GB", {
@@ -224,14 +225,16 @@ function ProposalContent() {
 
 export default function ProposalPage() {
   return (
-    <Suspense
-      fallback={
-        <main>
-          <p className="subtitle">Loading…</p>
-        </main>
-      }
-    >
-      <ProposalContent />
-    </Suspense>
+    <RequireAuth>
+      <Suspense
+        fallback={
+          <main>
+            <p className="subtitle">Loading…</p>
+          </main>
+        }
+      >
+        <ProposalContent />
+      </Suspense>
+    </RequireAuth>
   );
 }
