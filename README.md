@@ -86,6 +86,19 @@ Query functions live in `lib/data/*.ts` (`getServices`, `getTiers`,
 session so call sites don't have to. The Supabase client is in
 `lib/supabase/client.ts`, typed against `lib/supabase/types.ts`.
 
+## Branching and deploys
+
+`main` is the trunk and Netlify's production branch. Pushing to `main` deploys
+to https://quotient-proposals.netlify.app.
+
+Netlify builds whichever branch is set as *Production branch* in its build
+settings — it does not follow GitHub's default branch, so those two settings
+have to be changed together.
+
+Other branches get Netlify branch deploys at
+`<branch-name>--quotient-proposals.netlify.app`, which is the place to check a
+risky change before it reaches production.
+
 ## Routes
 
 - `/login` — email/password sign in and sign up (the only public route)
