@@ -6,7 +6,7 @@ import Link from "next/link";
 import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
-import { getAgencyName } from "@/lib/data/settings";
+import { getAgencyNameOrDefault } from "@/lib/data/settings";
 import { errorMessage } from "@/lib/errors";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { supabase } from "@/lib/supabase/client";
@@ -36,6 +36,7 @@ function Home() {
   const [agencyName, setAgencyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
 
   const [clientName, setClientName] = useState("");
   const [selectedIndustryId, setSelectedIndustryId] = useState<string | null>(
@@ -46,18 +47,19 @@ function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const [industriesData, tiersData, pricingRulesData, agencyNameData] =
+        const [industriesData, tiersData, pricingRulesData, agency] =
           await Promise.all([
             getIndustries(),
             getTiers(),
             getPricingRules(),
-            getAgencyName(),
+            getAgencyNameOrDefault(),
           ]);
 
         setIndustries(industriesData);
         setTiers(tiersData);
         setPricingRules(pricingRulesData);
-        setAgencyName(agencyNameData);
+        setAgencyName(agency.agencyName);
+        setWarning(agency.warning);
 
         const servicesByTier = await Promise.all(
           tiersData.map(async (tier) => {
@@ -150,6 +152,13 @@ function Home() {
           </button>
         </div>
       </div>
+
+      {warning && (
+        <div className="warning-banner">
+          {warning} — showing the placeholder below. Saving will overwrite
+          whatever name is currently stored.
+        </div>
+      )}
 
       <AgencySettings value={agencyName} onSaved={setAgencyName} />
 

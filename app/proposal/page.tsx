@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAgencyName } from "@/lib/data/settings";
+import { getAgencyNameOrDefault } from "@/lib/data/settings";
 import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
@@ -50,6 +50,7 @@ function ProposalContent() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -87,19 +88,20 @@ function ProposalContent() {
           setPricing(proposal);
           setIndustry(industryData);
         } else if (clientParam && tierParam) {
-          const [tierData, tierServiceRows, pricingRule, industryData, currentAgencyName] =
+          const [tierData, tierServiceRows, pricingRule, industryData, agency] =
             await Promise.all([
               getTierById(tierParam),
               getTierWithServices(tierParam),
               getPricingRule(tierParam, industryParam),
               industryParam ? getIndustryById(industryParam) : Promise.resolve(null),
-              getAgencyName(),
+              getAgencyNameOrDefault(),
             ]);
 
           setClientName(clientParam);
           setTierId(tierParam);
           setIndustryId(industryParam);
-          setAgencyName(currentAgencyName);
+          setAgencyName(agency.agencyName);
+          setWarning(agency.warning);
           setDocumentDate(new Date());
           setSaved(false);
           setTier(tierData);
@@ -210,6 +212,13 @@ function ProposalContent() {
       </div>
 
       {error && <div className="empty-state no-print">{error}</div>}
+
+      {warning && (
+        <div className="warning-banner no-print">
+          {warning} — the header below shows the placeholder, not your agency
+          name. Reload before sending this to a client.
+        </div>
+      )}
 
       <ProposalDocument
         clientName={clientName}
