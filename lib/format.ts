@@ -6,10 +6,3 @@ export function formatGBP(amount: number) {
     maximumFractionDigits: 2,
   }).format(amount);
 }
-
-export function formatSlug(slug: string) {
-  return slug
-    .split("_")
-    .map((word) => word[0].toUpperCase() + word.slice(1))
-    .join(" ");
-}

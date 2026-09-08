@@ -101,7 +101,8 @@ function Home() {
     );
   }, [selectedTierId, selectedIndustryId, pricingRules]);
 
-  const canGenerateProposal = clientName.trim().length > 0 && selectedTierId;
+  const canGenerateProposal =
+    clientName.trim().length > 0 && selectedTierId && selectedRule;
 
   function handleGenerateProposal() {
     if (!canGenerateProposal || !selectedTierId) return;
@@ -140,6 +141,9 @@ function Home() {
           <p className="subtitle">Pricing calculator</p>
         </div>
         <div className="header-actions">
+          <Link href="/rate-card" className="text-link">
+            Rate card
+          </Link>
           <Link href="/proposals" className="text-link">
             Past proposals &rarr;
           </Link>
@@ -172,14 +176,27 @@ function Home() {
         onChange={setSelectedIndustryId}
       />
 
-      <TierPicker
-        tiers={tiers}
-        tierServices={tierServices}
-        selectedTierId={selectedTierId}
-        onSelect={setSelectedTierId}
-      />
+      {tiers.length === 0 ? (
+        <section>
+          <label>Tier</label>
+          <div className="empty-state">
+            Your rate card is empty.{" "}
+            <Link href="/rate-card">Build it first</Link> — add your services,
+            group them into tiers, and set your fees.
+          </div>
+        </section>
+      ) : (
+        <>
+          <TierPicker
+            tiers={tiers}
+            tierServices={tierServices}
+            selectedTierId={selectedTierId}
+            onSelect={setSelectedTierId}
+          />
 
-      <PricingSummary rule={selectedRule} />
+          <PricingSummary rule={selectedRule} />
+        </>
+      )}
 
       <section>
         <button

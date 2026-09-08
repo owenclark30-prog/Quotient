@@ -111,7 +111,7 @@ input[type="text"] {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: 28px;
 }
 
 .page-header .subtitle {
@@ -602,4 +602,119 @@ input[type="password"] {
     border-radius: 0;
     padding: 0;
   }
+}
+
+/* Rate-card builder */
+
+.section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 4px;
+}
+
+.section-intro {
+  margin-bottom: 16px;
+}
+
+.editor-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.editor-row input[type="text"] {
+  flex: 1;
+}
+
+.editor-row-new {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+}
+
+.link-button.danger {
+  color: #b91c1c;
+}
+
+.link-button.danger:hover {
+  color: #7f1d1d;
+}
+
+.tier-editor {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.tier-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.tier-editor-block {
+  margin-top: 20px;
+}
+
+.checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  margin: 0;
+}
+
+.checkbox-item input {
+  width: auto;
+  margin: 0;
+}
+
+.fee-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fee-grid label {
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.fee-grid input {
+  width: 100%;
+  margin-top: 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.error-state {
+  color: #991b1b;
+  background: #fef2f2;
+  border-style: solid;
+  border-color: #fecaca;
+  margin-bottom: 20px;
 }

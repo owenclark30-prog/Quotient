@@ -1,7 +1,6 @@
 "use client";
 
 import type { Service, Tier } from "@/lib/supabase/types";
-import { formatSlug } from "@/lib/format";
 
 export function TierPicker({
   tiers,
@@ -42,7 +41,7 @@ export function TierPicker({
                   {services.map((service) => (
                     <li key={service.id}>
                       <span>
-                        {formatSlug(service.name)}
+                        {service.name}
                         {service.description && (
                           <span className="service-desc">
                             {" "}
