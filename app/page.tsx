@@ -6,11 +6,8 @@ import Link from "next/link";
 import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
-import { getAgencyNameOrDefault } from "@/lib/data/settings";
 import { errorMessage } from "@/lib/errors";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
-import { supabase } from "@/lib/supabase/client";
-import { AgencySettings } from "./components/AgencySettings";
 import { ClientNameInput } from "./components/ClientNameInput";
 import { IndustrySelect } from "./components/IndustrySelect";
 import { TierPicker } from "./components/TierPicker";
@@ -33,10 +30,8 @@ function Home() {
   const [tierServices, setTierServices] = useState<Record<string, Service[]>>(
     {}
   );
-  const [agencyName, setAgencyName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [warning, setWarning] = useState<string | null>(null);
 
   const [clientName, setClientName] = useState("");
   const [selectedIndustryId, setSelectedIndustryId] = useState<string | null>(
@@ -47,19 +42,12 @@ function Home() {
   useEffect(() => {
     async function load() {
       try {
-        const [industriesData, tiersData, pricingRulesData, agency] =
-          await Promise.all([
-            getIndustries(),
-            getTiers(),
-            getPricingRules(),
-            getAgencyNameOrDefault(),
-          ]);
+        const [industriesData, tiersData, pricingRulesData] =
+          await Promise.all([getIndustries(), getTiers(), getPricingRules()]);
 
         setIndustries(industriesData);
         setTiers(tiersData);
         setPricingRules(pricingRulesData);
-        setAgencyName(agency.agencyName);
-        setWarning(agency.warning);
 
         const servicesByTier = await Promise.all(
           tiersData.map(async (tier) => {
@@ -127,7 +115,7 @@ function Home() {
   if (error) {
     return (
       <main>
-        <h1>Quotient</h1>
+        <h1>New proposal</h1>
         <div className="empty-state">{error}</div>
       </main>
     );
@@ -135,38 +123,8 @@ function Home() {
 
   return (
     <main>
-      <div className="page-header">
-        <div>
-          <h1>Quotient</h1>
-          <p className="subtitle">Pricing calculator</p>
-        </div>
-        <div className="header-actions">
-          <Link href="/rate-card" className="text-link">
-            Rate card
-          </Link>
-          <Link href="/proposals" className="text-link">
-            Past proposals &rarr;
-          </Link>
-          <button
-            type="button"
-            className="link-button"
-            onClick={() => supabase.auth.signOut()}
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      {warning && (
-        <div className="warning-banner">
-          {warning} — showing the placeholder below. Saving will overwrite
-          whatever name is currently stored.
-        </div>
-      )}
-
-      <AgencySettings value={agencyName} onSaved={setAgencyName} />
-
-      <hr className="divider" />
+      <h1>New proposal</h1>
+      <p className="subtitle">Pricing calculator</p>
 
       <ClientNameInput value={clientName} onChange={setClientName} />
 

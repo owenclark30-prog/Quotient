@@ -47,13 +47,7 @@ function ProposalsList() {
 
   return (
     <main>
-      <div className="proposal-actions">
-        <Link href="/" className="text-link">
-          &larr; Back to calculator
-        </Link>
-      </div>
-
-      <h1>Past Proposals</h1>
+      <h1>Past proposals</h1>
       <p className="subtitle">Proposals you&rsquo;ve saved</p>
 
       {loading && <p className="subtitle">Loading…</p>}

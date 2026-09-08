@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { getServices } from "@/lib/data/services";
 import { createTier, getAllTierServices, getTiers } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
@@ -81,15 +80,8 @@ function RateCard() {
 
   return (
     <main>
-      <div className="page-header">
-        <div>
-          <h1>Rate card</h1>
-          <p className="subtitle">Your services, tiers and pricing</p>
-        </div>
-        <Link href="/" className="text-link">
-          &larr; Calculator
-        </Link>
-      </div>
+      <h1>Rate card</h1>
+      <p className="subtitle">Your services, tiers and pricing</p>
 
       {error && <div className="empty-state error-state">{error}</div>}
 

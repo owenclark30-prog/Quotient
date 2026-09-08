@@ -1,11 +1,25 @@
 :root {
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --border: #e4e4e7;
-  --border-selected: #18181b;
-  --text: #18181b;
-  --text-muted: #71717a;
-  --accent: #18181b;
+  color-scheme: dark;
+  accent-color: var(--accent-bright);
+
+  --bg: #0d0f0e;
+  --surface: #1a1d1b;
+  --border: #2a2e2c;
+  /* Functional boundaries (inputs, hover) need 3:1; --border is decorative. */
+  --border-strong: #626966;
+  --text: #e8eae7;
+  --text-muted: #8a8f8c;
+
+  /* Filled surfaces only — white text sits on this. */
+  --accent: #0b5c4e;
+  --accent-hover: #0e6b5c;
+  /* Anything the accent has to be *read as* on the dark background: links,
+     selected borders, focus rings. --accent itself is only 2.4:1 there. */
+  --accent-bright: #2fb89d;
+  --border-selected: var(--accent-bright);
+
+  --danger: #f87171;
+  --danger-hover: #fca5a5;
 }
 
 * {
@@ -56,7 +70,7 @@ select,
 input[type="text"] {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
@@ -69,12 +83,16 @@ input[type="text"] {
   border: none;
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: #ffffff;
   font: inherit;
   font-weight: 600;
   font-size: 0.9rem;
   padding: 12px 20px;
   cursor: pointer;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
 }
 
 .button-primary:disabled {
@@ -105,6 +123,122 @@ input[type="text"] {
   color: var(--text-muted);
   cursor: not-allowed;
   background: transparent;
+}
+
+/* Nav shell */
+
+.app-nav {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.app-nav-inner {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 24px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.app-nav-brand {
+  color: var(--text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  /* Push the account menu to the far edge. */
+  margin-right: auto;
+  overflow-x: auto;
+}
+
+.app-nav-link {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.app-nav-link:hover {
+  color: var(--text);
+}
+
+.app-nav-link.active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.app-nav-account {
+  position: relative;
+}
+
+.app-nav-account-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-nav-account-button:hover {
+  background: var(--bg);
+}
+
+.app-nav-caret {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
+/* Catches the click that closes the menu without trapping focus. */
+.app-nav-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.app-nav-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 11;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 6px;
+}
+
+.app-nav-menu-item {
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  text-decoration: none;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.app-nav-menu-item:hover {
+  background: var(--bg);
 }
 
 .page-header {
@@ -179,9 +313,9 @@ input[type="text"] {
 }
 
 .form-error {
-  color: #991b1b;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  color: #fca5a5;
+  background: #2a1618;
+  border: 1px solid #a8434d;
 }
 
 .form-notice {
@@ -194,7 +328,7 @@ input[type="email"],
 input[type="password"] {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
@@ -246,7 +380,7 @@ input[type="password"] {
 }
 
 .proposal-list-item:hover {
-  border-color: #a1a1aa;
+  border-color: var(--border-strong);
 }
 
 .proposal-list-client {
@@ -286,7 +420,7 @@ input[type="password"] {
 }
 
 .tier-card:hover {
-  border-color: #a1a1aa;
+  border-color: var(--border-strong);
 }
 
 .tier-card.selected {
@@ -339,7 +473,7 @@ input[type="password"] {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--accent-bright);
   margin-top: 7px;
   flex-shrink: 0;
 }
@@ -393,21 +527,39 @@ input[type="password"] {
 }
 
 .empty-state a {
-  color: var(--text);
+  color: var(--accent-bright);
 }
 
 .warning-banner {
   font-size: 0.85rem;
   line-height: 1.4;
-  color: #854d0e;
-  background: #fefce8;
-  border: 1px solid #fde68a;
+  color: #fcd34d;
+  background: #2a2415;
+  border: 1px solid #7f6b22;
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 24px;
 }
 
-/* Proposal document */
+/* Proposal document
+   Stays light on screen and in print — this is what an agency owner sends to
+   their own client, so it must not inherit the app's dark theme. The document's
+   rules all read from these variables, so rescoping them here is the entire
+   override. */
+
+.proposal {
+  --surface: #ffffff;
+  --bg: #ffffff;
+  --border: #e4e4e7;
+  --border-strong: #71717a;
+  --text: #18181b;
+  --text-muted: #71717a;
+  --accent: #18181b;
+  --accent-bright: #18181b;
+
+  color: var(--text);
+  color-scheme: light;
+}
 
 .proposal-actions {
   display: flex;
@@ -584,8 +736,12 @@ input[type="password"] {
 }
 
 @media print {
+  /* Only the proposal is ever printed, and it re-declares its own colours.
+     These are a floor so nothing inherits the app's dark theme onto paper. */
   body {
     background: #fff;
+    color: #18181b;
+    color-scheme: light;
   }
 
   main {
@@ -593,7 +749,8 @@ input[type="password"] {
     padding: 0;
   }
 
-  .no-print {
+  .no-print,
+  .app-nav {
     display: none !important;
   }
 
@@ -634,11 +791,11 @@ input[type="password"] {
 }
 
 .link-button.danger {
-  color: #b91c1c;
+  color: var(--danger);
 }
 
 .link-button.danger:hover {
-  color: #7f1d1d;
+  color: var(--danger-hover);
 }
 
 .tier-editor {
@@ -703,7 +860,7 @@ input[type="password"] {
   width: 100%;
   margin-top: 4px;
   padding: 9px 11px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   background: var(--surface);
   color: var(--text);
@@ -712,9 +869,9 @@ input[type="password"] {
 }
 
 .error-state {
-  color: #991b1b;
-  background: #fef2f2;
+  color: #fca5a5;
+  background: #2a1618;
   border-style: solid;
-  border-color: #fecaca;
+  border-color: #a8434d;
   margin-bottom: 20px;
 }

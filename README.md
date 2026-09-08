@@ -114,8 +114,36 @@ risky change before it reaches production.
 ## Routes
 
 - `/login` — email/password sign in and sign up (the only public route)
-- `/` — calculator: agency name setting, client name, industry, tier, live pricing
+- `/` — calculator: client name, industry, tier, live pricing
 - `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
+- `/settings` — agency name shown on proposals
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
 - `/proposals` — list of saved proposals
+
+Every signed-in route renders `AppNav` (`app/components/AppNav.tsx`) from the
+root layout: branding, the three nav links, and an account menu holding agency
+settings and sign out. It returns `null` when there's no session, so `/login`
+has no chrome, and it's hidden in print.
+
+## Theme
+
+Dark by default. All colours come from custom properties on `:root` in
+`app/globals.css` — pages and components never hardcode a colour, so the theme
+is changed in one place.
+
+Two things are deliberate rather than accidental:
+
+- **`--accent` vs `--accent-bright`.** `--accent` (`#0b5c4e`) is for *filled*
+  surfaces only, where white text sits on it. It's 2.4:1 against the page
+  background, so anything that has to be **read as** the accent — links,
+  selected borders, focus rings — uses `--accent-bright` (`#2fb89d`) instead.
+- **`--border` vs `--border-strong`.** `--border` is a decorative hairline.
+  Anything that bounds a control (inputs, hover states, the account menu) uses
+  `--border-strong`, which clears the 3:1 WCAG ratio for non-text contrast.
+
+`.proposal` is a **light island**: it re-declares the same tokens with light
+values and sets `color-scheme: light`, so the document an agency owner sends to
+their own client stays white on screen and in print regardless of the app's
+theme. It overrides variables, not rules — there is no duplicated styling to
+keep in sync. Changing the app theme cannot change the proposal.
