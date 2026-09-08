@@ -1,10 +1,14 @@
-import type { ProposalPricing, Service, Tier } from "@/lib/supabase/types";
-import { formatGBP, formatSlug } from "@/lib/format";
+import type {
+  ProposalPricing,
+  ProposalServiceSnapshot,
+} from "@/lib/supabase/types";
+import { formatGBP } from "@/lib/format";
 
 export function ProposalDocument({
   clientName,
   industryName,
-  tier,
+  tierName,
+  tierDescription,
   services,
   pricing,
   agencyName,
@@ -12,8 +16,9 @@ export function ProposalDocument({
 }: {
   clientName: string;
   industryName: string | null;
-  tier: Tier;
-  services: Service[];
+  tierName: string;
+  tierDescription: string | null;
+  services: ProposalServiceSnapshot[];
   pricing: ProposalPricing;
   agencyName: string;
   generatedDate: string;
@@ -43,9 +48,9 @@ export function ProposalDocument({
 
       <section className="proposal-block">
         <span className="proposal-label">Package</span>
-        <h2 className="proposal-tier-name">{tier.name}</h2>
-        {tier.description && (
-          <p className="proposal-tier-description">{tier.description}</p>
+        <h2 className="proposal-tier-name">{tierName}</h2>
+        {tierDescription && (
+          <p className="proposal-tier-description">{tierDescription}</p>
         )}
       </section>
 
@@ -53,10 +58,8 @@ export function ProposalDocument({
         <span className="proposal-label">What&rsquo;s included</span>
         <ul className="proposal-services">
           {services.map((service) => (
-            <li key={service.id}>
-              <span className="proposal-service-name">
-                {formatSlug(service.name)}
-              </span>
+            <li key={service.name}>
+              <span className="proposal-service-name">{service.name}</span>
               {service.description && (
                 <span className="proposal-service-desc">
                   {" "}

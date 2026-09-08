@@ -12,8 +12,7 @@ import { errorMessage } from "@/lib/errors";
 import type {
   Industry,
   ProposalPricing,
-  Service,
-  Tier,
+  ProposalServiceSnapshot,
 } from "@/lib/supabase/types";
 import { ProposalDocument } from "../components/ProposalDocument";
 import { RequireAuth } from "../components/RequireAuth";
@@ -43,8 +42,9 @@ function ProposalContent() {
   const [documentDate, setDocumentDate] = useState<Date>(new Date());
   const [saved, setSaved] = useState(false);
 
-  const [tier, setTier] = useState<Tier | null>(null);
-  const [services, setServices] = useState<Service[]>([]);
+  const [tierName, setTierName] = useState<string | null>(null);
+  const [tierDescription, setTierDescription] = useState<string | null>(null);
+  const [services, setServices] = useState<ProposalServiceSnapshot[]>([]);
   const [industry, setIndustry] = useState<Industry | null>(null);
   const [pricing, setPricing] = useState<ProposalPricing | null>(null);
 
@@ -66,27 +66,24 @@ function ProposalContent() {
         if (proposalId) {
           const proposal = await getProposalById(proposalId);
 
-          const [tierData, tierServiceRows, industryData] = await Promise.all([
-            getTierById(proposal.tier_id),
-            getTierWithServices(proposal.tier_id),
-            proposal.industry_id
-              ? getIndustryById(proposal.industry_id)
-              : Promise.resolve(null),
-          ]);
-
+          // Everything the document renders was frozen at save time, so a
+          // saved proposal never touches the live rate card — editing or
+          // deleting a tier can't rewrite a proposal already sent.
           setClientName(proposal.client_name);
           setTierId(proposal.tier_id);
           setIndustryId(proposal.industry_id);
           setAgencyName(proposal.agency_name);
           setDocumentDate(new Date(proposal.created_at));
           setSaved(true);
-          setTier(tierData);
-          setServices(
-            tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
-          );
-          // Fees are frozen on the row at save time, not re-resolved.
+          setTierName(proposal.tier_name);
+          setTierDescription(proposal.tier_description);
+          setServices(proposal.services);
           setPricing(proposal);
-          setIndustry(industryData);
+          setIndustry(
+            proposal.industry_id
+              ? await getIndustryById(proposal.industry_id).catch(() => null)
+              : null
+          );
         } else if (clientParam && tierParam) {
           const [tierData, tierServiceRows, pricingRule, industryData, agency] =
             await Promise.all([
@@ -104,9 +101,16 @@ function ProposalContent() {
           setWarning(agency.warning);
           setDocumentDate(new Date());
           setSaved(false);
-          setTier(tierData);
+          setTierName(tierData.name);
+          setTierDescription(tierData.description);
           setServices(
-            tierServiceRows.map((row) => row.services).filter(Boolean) as Service[]
+            tierServiceRows
+              .map((row) => row.services)
+              .filter(Boolean)
+              .map((service) => ({
+                name: service!.name,
+                description: service!.description,
+              }))
           );
           setPricing(pricingRule);
           setIndustry(industryData);
@@ -124,7 +128,8 @@ function ProposalContent() {
   }, [hasValidParams, proposalId, clientParam, tierParam, industryParam]);
 
   async function handleSave() {
-    if (!clientName || !tierId || agencyName == null || !pricing) return;
+    if (!clientName || !tierId || agencyName == null || !pricing || !tierName)
+      return;
 
     setSaving(true);
     setError(null);
@@ -134,6 +139,9 @@ function ProposalContent() {
         tier_id: tierId,
         industry_id: industryId,
         agency_name: agencyName,
+        tier_name: tierName,
+        tier_description: tierDescription,
+        services,
         setup_fee: pricing.setup_fee,
         monthly_fee: pricing.monthly_fee,
         founding_setup_fee: pricing.founding_setup_fee,
@@ -168,7 +176,7 @@ function ProposalContent() {
     );
   }
 
-  if (error && !tier) {
+  if (error && !tierName) {
     return (
       <main>
         <div className="empty-state">{error}</div>
@@ -176,7 +184,7 @@ function ProposalContent() {
     );
   }
 
-  if (!tier || !pricing || !clientName || agencyName == null) {
+  if (!tierName || !pricing || !clientName || agencyName == null) {
     return (
       <main>
         <div className="empty-state">Proposal not found.</div>
@@ -223,7 +231,8 @@ function ProposalContent() {
       <ProposalDocument
         clientName={clientName}
         industryName={industry?.name ?? null}
-        tier={tier}
+        tierName={tierName}
+        tierDescription={tierDescription}
         services={services}
         pricing={pricing}
         agencyName={agencyName}

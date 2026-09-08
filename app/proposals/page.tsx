@@ -78,7 +78,7 @@ function ProposalsList() {
                     {proposal.client_name}
                   </div>
                   <div className="proposal-list-tier">
-                    {proposal.tiers?.name}
+                    {proposal.tier_name}
                   </div>
                 </div>
                 <div className="proposal-list-date">

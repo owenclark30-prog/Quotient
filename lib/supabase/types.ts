@@ -1,19 +1,28 @@
+/** What a proposal freezes about each included service at save time. */
+export type ProposalServiceSnapshot = {
+  name: string;
+  description: string | null;
+};
+
 export type Database = {
   public: {
     Tables: {
       services: {
         Row: {
           id: string;
+          user_id: string;
           name: string;
           description: string | null;
         };
         Insert: {
           id?: string;
+          user_id: string;
           name: string;
           description?: string | null;
         };
         Update: {
           id?: string;
+          user_id?: string;
           name?: string;
           description?: string | null;
         };
@@ -22,18 +31,21 @@ export type Database = {
       tiers: {
         Row: {
           id: string;
+          user_id: string;
           name: string;
           level: number;
           description: string | null;
         };
         Insert: {
           id?: string;
+          user_id: string;
           name: string;
           level: number;
           description?: string | null;
         };
         Update: {
           id?: string;
+          user_id?: string;
           name?: string;
           level?: number;
           description?: string | null;
@@ -42,14 +54,17 @@ export type Database = {
       };
       tier_services: {
         Row: {
+          user_id: string;
           tier_id: string;
           service_id: string;
         };
         Insert: {
+          user_id: string;
           tier_id: string;
           service_id: string;
         };
         Update: {
+          user_id?: string;
           tier_id?: string;
           service_id?: string;
         };
@@ -73,14 +88,17 @@ export type Database = {
       industries: {
         Row: {
           id: string;
+          user_id: string;
           name: string;
         };
         Insert: {
           id?: string;
+          user_id: string;
           name: string;
         };
         Update: {
           id?: string;
+          user_id?: string;
           name?: string;
         };
         Relationships: [];
@@ -88,6 +106,7 @@ export type Database = {
       pricing_rules: {
         Row: {
           id: string;
+          user_id: string;
           tier_id: string;
           industry_id: string | null;
           setup_fee: number;
@@ -98,6 +117,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          user_id: string;
           tier_id: string;
           industry_id?: string | null;
           setup_fee: number;
@@ -108,6 +128,7 @@ export type Database = {
         };
         Update: {
           id?: string;
+          user_id?: string;
           tier_id?: string;
           industry_id?: string | null;
           setup_fee?: number;
@@ -138,9 +159,12 @@ export type Database = {
           id: string;
           user_id: string;
           client_name: string;
-          tier_id: string;
+          tier_id: string | null;
           industry_id: string | null;
           agency_name: string;
+          tier_name: string;
+          tier_description: string | null;
+          services: ProposalServiceSnapshot[];
           setup_fee: number;
           monthly_fee: number;
           founding_setup_fee: number | null;
@@ -152,9 +176,12 @@ export type Database = {
           id?: string;
           user_id: string;
           client_name: string;
-          tier_id: string;
+          tier_id?: string | null;
           industry_id?: string | null;
           agency_name: string;
+          tier_name: string;
+          tier_description?: string | null;
+          services: ProposalServiceSnapshot[];
           setup_fee: number;
           monthly_fee: number;
           founding_setup_fee?: number | null;
@@ -166,9 +193,12 @@ export type Database = {
           id?: string;
           user_id?: string | null;
           client_name?: string;
-          tier_id?: string;
+          tier_id?: string | null;
           industry_id?: string | null;
           agency_name?: string;
+          tier_name?: string;
+          tier_description?: string | null;
+          services?: ProposalServiceSnapshot[];
           setup_fee?: number;
           monthly_fee?: number;
           founding_setup_fee?: number | null;

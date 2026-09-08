@@ -33,7 +33,7 @@ export async function getProposalById(id: string) {
 export async function getProposals() {
   const { data, error } = await supabase
     .from("proposals")
-    .select("*, tiers(name)")
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) throw error;
