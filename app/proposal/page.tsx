@@ -10,7 +10,6 @@ import { getPricingRule } from "@/lib/data/pricing-rules";
 import { createProposal, getProposalById } from "@/lib/data/proposals";
 import { errorMessage } from "@/lib/errors";
 import type {
-  Industry,
   ProposalPricing,
   ProposalServiceSnapshot,
 } from "@/lib/supabase/types";
@@ -45,7 +44,7 @@ function ProposalContent() {
   const [tierName, setTierName] = useState<string | null>(null);
   const [tierDescription, setTierDescription] = useState<string | null>(null);
   const [services, setServices] = useState<ProposalServiceSnapshot[]>([]);
-  const [industry, setIndustry] = useState<Industry | null>(null);
+  const [industryName, setIndustryName] = useState<string | null>(null);
   const [pricing, setPricing] = useState<ProposalPricing | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -79,11 +78,7 @@ function ProposalContent() {
           setTierDescription(proposal.tier_description);
           setServices(proposal.services);
           setPricing(proposal);
-          setIndustry(
-            proposal.industry_id
-              ? await getIndustryById(proposal.industry_id).catch(() => null)
-              : null
-          );
+          setIndustryName(proposal.industry_name);
         } else if (clientParam && tierParam) {
           const [tierData, tierServiceRows, pricingRule, industryData, agency] =
             await Promise.all([
@@ -113,7 +108,7 @@ function ProposalContent() {
               }))
           );
           setPricing(pricingRule);
-          setIndustry(industryData);
+          setIndustryName(industryData?.name ?? null);
         }
       } catch (err) {
         setError(
@@ -139,6 +134,7 @@ function ProposalContent() {
         tier_id: tierId,
         industry_id: industryId,
         agency_name: agencyName,
+        industry_name: industryName,
         tier_name: tierName,
         tier_description: tierDescription,
         services,
@@ -230,7 +226,7 @@ function ProposalContent() {
 
       <ProposalDocument
         clientName={clientName}
-        industryName={industry?.name ?? null}
+        industryName={industryName}
         tierName={tierName}
         tierDescription={tierDescription}
         services={services}

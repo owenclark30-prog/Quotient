@@ -162,6 +162,7 @@ export type Database = {
           tier_id: string | null;
           industry_id: string | null;
           agency_name: string;
+          industry_name: string | null;
           tier_name: string;
           tier_description: string | null;
           services: ProposalServiceSnapshot[];
@@ -179,6 +180,7 @@ export type Database = {
           tier_id?: string | null;
           industry_id?: string | null;
           agency_name: string;
+          industry_name?: string | null;
           tier_name: string;
           tier_description?: string | null;
           services: ProposalServiceSnapshot[];
@@ -196,6 +198,7 @@ export type Database = {
           tier_id?: string | null;
           industry_id?: string | null;
           agency_name?: string;
+          industry_name?: string | null;
           tier_name?: string;
           tier_description?: string | null;
           services?: ProposalServiceSnapshot[];

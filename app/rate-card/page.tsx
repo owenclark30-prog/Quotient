@@ -5,9 +5,11 @@ import Link from "next/link";
 import { getServices } from "@/lib/data/services";
 import { createTier, getAllTierServices, getTiers } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
+import { getIndustries } from "@/lib/data/industries";
 import { errorMessage } from "@/lib/errors";
-import type { PricingRule, Service, Tier } from "@/lib/supabase/types";
+import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { RequireAuth } from "../components/RequireAuth";
+import { IndustriesEditor } from "../components/IndustriesEditor";
 import { ServicesEditor } from "../components/ServicesEditor";
 import { TierEditor } from "../components/TierEditor";
 
@@ -23,6 +25,7 @@ function RateCard() {
   const [services, setServices] = useState<Service[]>([]);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [rules, setRules] = useState<PricingRule[]>([]);
+  const [industries, setIndustries] = useState<Industry[]>([]);
   const [membership, setMembership] = useState<
     { tier_id: string; service_id: string }[]
   >([]);
@@ -31,18 +34,20 @@ function RateCard() {
   const [addingTier, setAddingTier] = useState(false);
 
   const load = useCallback(async () => {
-    const [servicesData, tiersData, rulesData, membershipData] =
+    const [servicesData, tiersData, rulesData, membershipData, industriesData] =
       await Promise.all([
         getServices(),
         getTiers(),
         getPricingRules(),
         getAllTierServices(),
+        getIndustries(),
       ]);
 
     setServices(servicesData);
     setTiers(tiersData);
     setRules(rulesData);
     setMembership(membershipData);
+    setIndustries(industriesData);
   }, []);
 
   useEffect(() => {
@@ -139,6 +144,14 @@ function RateCard() {
           {addingTier ? "Adding…" : "Add tier"}
         </button>
       </section>
+
+      <hr className="divider" />
+
+      <IndustriesEditor
+        industries={industries}
+        onChanged={load}
+        onError={setError}
+      />
     </main>
   );
 }

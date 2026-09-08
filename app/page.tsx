@@ -170,11 +170,13 @@ function Home() {
 
       <ClientNameInput value={clientName} onChange={setClientName} />
 
-      <IndustrySelect
-        industries={industries}
-        value={selectedIndustryId}
-        onChange={setSelectedIndustryId}
-      />
+      {industries.length > 0 && (
+        <IndustrySelect
+          industries={industries}
+          value={selectedIndustryId}
+          onChange={setSelectedIndustryId}
+        />
+      )}
 
       {tiers.length === 0 ? (
         <section>

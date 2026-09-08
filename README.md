@@ -51,9 +51,9 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `services` — the individual things a user delivers
 - `tiers` — a user's packages, ordered by `level` (per-user sort order, no fixed count)
 - `tier_services` — join table: which services belong to which tier
-- `industries` — optional vertical; unused so far
+- `industries` — optional vertical a proposal can be tagged with, managed in the rate-card builder
 - `pricing_rules` — setup/monthly fee per tier, optionally scoped to an industry; `industry_id IS NULL` is the generic rate the builder edits. Optional founding rate (discounted setup/monthly for a set number of months).
-- `proposals` — a saved quote. The agency name, tier name and description, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can edit or delete anything on your rate card without touching a proposal already sent.
+- `proposals` — a saved quote. The agency name, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can edit or delete anything on your rate card without touching a proposal already sent.
 - `settings` — one row per user (`user_id` PK) holding the agency name shown on their proposals
 
 ### Access control
@@ -79,6 +79,7 @@ grants and policies or it will be inaccessible to the publishable key.
 Query functions live in `lib/data/*.ts` (`getServices`, `getTiers`,
 `getTierById`, `getTierWithServices`, `getIndustries`, `getIndustryById`,
 `getPricingRule`, `getPricingRules`, `saveGenericPricingRule`,
+`createIndustry`/`updateIndustry`/`deleteIndustry`,
 `createService`/`updateService`/`deleteService`,
 `createTier`/`updateTier`/`deleteTier`, `addServiceToTier`/`removeServiceFromTier`,
 `createProposal`, `getProposalById`, `getProposals`, `getAgencyName`,
@@ -103,7 +104,7 @@ risky change before it reaches production.
 
 - `/login` — email/password sign in and sign up (the only public route)
 - `/` — calculator: agency name setting, client name, industry, tier, live pricing
-- `/rate-card` — builder: create services, group them into tiers, set fees
+- `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
 - `/proposals` — list of saved proposals
