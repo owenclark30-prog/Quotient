@@ -51,8 +51,19 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `services` — the individual things a user delivers
 - `tiers` — a user's packages, ordered by `level` (per-user sort order, no fixed count)
 - `tier_services` — join table: which services belong to which tier
-- `industries` — optional vertical a proposal can be tagged with, managed in the rate-card builder
-- `pricing_rules` — setup/monthly fee per tier, optionally scoped to an industry; `industry_id IS NULL` is the generic rate the builder edits. Optional founding rate (discounted setup/monthly for a set number of months).
+- `industries` — optional vertical a proposal can be tagged with, managed in the rate-card builder. **Label and tailoring only — deliberately not a price differentiator** (see below)
+- `pricing_rules` — setup/monthly fee per tier. Optional founding rate (discounted setup/monthly for a set number of months). `industry_id` exists and the resolution logic prefers an industry-specific rule over the generic one, but **no UI writes industry-specific rules and none should be added without an explicit decision** — see below. In practice every rule has `industry_id IS NULL`.
+
+### Why industries don't affect price
+
+A deliberate product decision, not an unfinished feature. The service delivered
+is the same regardless of the client's vertical, so pricing by industry would be
+pricing on what the client can pay rather than what delivery costs — a different
+model (selling an outcome) from the one this tool is for (selling a service).
+The industry field is for labelling and tailoring a proposal only.
+
+The schema and `getPricingRule` fallback still support per-industry rules, so
+this is reversible if the decision changes.
 - `proposals` — a saved quote. The agency name, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can edit or delete anything on your rate card without touching a proposal already sent.
 - `settings` — one row per user (`user_id` PK) holding the agency name shown on their proposals
 
