@@ -3,6 +3,7 @@ import type {
   ProposalServiceSnapshot,
 } from "@/lib/supabase/types";
 import { formatGBP } from "@/lib/format";
+import { emailHref, websiteHref, websiteLabel } from "@/lib/agency";
 
 export function ProposalDocument({
   clientName,
@@ -12,6 +13,9 @@ export function ProposalDocument({
   services,
   pricing,
   agencyName,
+  agencyLogo,
+  agencyEmail,
+  agencyWebsite,
   generatedDate,
 }: {
   clientName: string;
@@ -21,10 +25,18 @@ export function ProposalDocument({
   services: ProposalServiceSnapshot[];
   pricing: ProposalPricing;
   agencyName: string;
+  agencyLogo: string | null;
+  agencyEmail: string | null;
+  agencyWebsite: string | null;
   generatedDate: string;
 }) {
   const hasFoundingRate =
     pricing.founding_setup_fee != null || pricing.founding_monthly_fee != null;
+
+  const mailto = emailHref(agencyEmail);
+  const site = websiteHref(agencyWebsite);
+  const siteLabel = websiteLabel(agencyWebsite);
+  const hasContact = Boolean(agencyEmail?.trim() || siteLabel);
 
   const setupFee = pricing.founding_setup_fee ?? pricing.setup_fee;
   const monthlyFee = pricing.founding_monthly_fee ?? pricing.monthly_fee;
@@ -32,7 +44,15 @@ export function ProposalDocument({
   return (
     <article className="proposal">
       <header className="proposal-header">
-        <div className="proposal-agency">{agencyName}</div>
+        <div>
+          {agencyLogo && (
+            /* Decorative: the agency name is right below it, so alt text here
+               would only repeat what a screen reader already reads. */
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={agencyLogo} alt="" className="proposal-logo" />
+          )}
+          <div className="proposal-agency">{agencyName}</div>
+        </div>
         <div className="proposal-date">{generatedDate}</div>
       </header>
 
@@ -114,7 +134,24 @@ export function ProposalDocument({
       </section>
 
       <footer className="proposal-footer">
-        Prepared by {agencyName} · {generatedDate}
+        <div>
+          Prepared by {agencyName} · {generatedDate}
+        </div>
+        {hasContact && (
+          <div className="proposal-contact">
+            {agencyEmail?.trim() &&
+              (mailto ? (
+                <a href={mailto}>{agencyEmail.trim()}</a>
+              ) : (
+                /* Not a usable mailto, but still worth printing. */
+                <span>{agencyEmail.trim()}</span>
+              ))}
+            {agencyEmail?.trim() && siteLabel && (
+              <span aria-hidden="true"> · </span>
+            )}
+            {siteLabel && site && <a href={site}>{siteLabel}</a>}
+          </div>
+        )}
       </footer>
     </article>
   );

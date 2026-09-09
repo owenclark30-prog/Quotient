@@ -30,10 +30,13 @@ export async function getProposalById(id: string) {
   return data;
 }
 
+/** Only the columns the list and dashboard actually render. Deliberately not
+ * `*`: agency_logo is an inlined image, and fetching one per row would make
+ * this query grow with every proposal ever saved. */
 export async function getProposals() {
   const { data, error } = await supabase
     .from("proposals")
-    .select("*")
+    .select("id, client_name, tier_name, created_at")
     .order("created_at", { ascending: false });
 
   if (error) throw error;

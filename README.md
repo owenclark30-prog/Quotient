@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema. Migrations `0001`–`0012` have already been applied to the
+3. Apply the schema. Migrations `0001`–`0013` have already been applied to the
    live project — this step is only needed when setting up a fresh Supabase
    project. `seed.sql` is optional and seeds one named account; new users are
    meant to start with an empty rate card and build their own.
@@ -53,8 +53,32 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `tier_services` — join table: which services belong to which tier
 - `industries` — optional vertical a proposal can be tagged with, managed in the rate-card builder. **Label and tailoring only — deliberately not a price differentiator** (see below)
 - `pricing_rules` — setup/monthly fee per tier. Optional founding rate (discounted setup/monthly for a set number of months). `industry_id` exists and the resolution logic prefers an industry-specific rule over the generic one, but **no UI writes industry-specific rules and none should be added without an explicit decision** — see below. In practice every rule has `industry_id IS NULL`.
-- `proposals` — a saved quote. The agency name, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can edit or delete anything on your rate card without touching a proposal already sent.
-- `settings` — one row per user (`user_id` PK) holding the agency name shown on their proposals
+- `proposals` — a saved quote. The agency name, **logo, contact email and website**, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card or the live settings. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can rebrand, edit or delete anything without touching a proposal already sent.
+- `settings` — one row per user (`user_id` PK): the agency name, logo, contact email and website that appear on their proposals. Everything but the name is optional and stored as NULL when blank, so "not set" is one value rather than two
+
+### Why the logo is a data URI, not a file in a bucket
+
+`settings.logo` and `proposals.agency_logo` hold a PNG data URI. That trades row
+size for two properties this app depends on:
+
+1. **Snapshot integrity.** A proposal has to render exactly as it was sent,
+   forever. A URL pointing at a mutable file breaks that — replace your logo and
+   every proposal you already sent silently rebrands itself; delete it and they
+   404. Bytes frozen on the proposal row cannot be rewritten from anywhere else.
+2. **Printing.** An external image can lose the race with the print dialog and
+   come out blank. A data URI is already in the document.
+
+It also means there is no storage bucket, and so no second RLS surface to get
+wrong. The cost is paid down in two places: `lib/logo.ts` downscales to a 480px
+long edge in the browser before anything is stored (a real logo lands at a few
+KB), and `getProposals` selects explicit columns so the list and dashboard never
+pull an image per row. **If you ever change that query back to `select("*")`,
+the proposals list starts fetching every logo ever used.**
+
+If logos ever need to be much larger, the move is a storage bucket with
+write-once paths — never overwriting or deleting an old file — so old proposals
+keep resolving. A bucket with mutable paths would reintroduce exactly the bug
+the snapshot pattern exists to prevent.
 
 ### Why industries don't affect price
 
@@ -93,8 +117,8 @@ Query functions live in `lib/data/*.ts` (`getServices`, `getTiers`,
 `createIndustry`/`updateIndustry`/`deleteIndustry`,
 `createService`/`updateService`/`deleteService`,
 `createTier`/`updateTier`/`deleteTier`, `addServiceToTier`/`removeServiceFromTier`,
-`createProposal`, `getProposalById`, `getProposals`, `getAgencyName`,
-`getAgencyNameOrDefault`, `updateAgencyName`). Writes stamp `user_id` from the
+`createProposal`, `getProposalById`, `getProposals`, `getAgencyIdentity`,
+`getAgencyIdentityOrDefault`, `updateAgencyIdentity`). Writes stamp `user_id` from the
 session so call sites don't have to. The Supabase client is in
 `lib/supabase/client.ts`, typed against `lib/supabase/types.ts`.
 
@@ -120,7 +144,7 @@ risky change before it reaches production.
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
 - `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
-- `/settings` — agency name shown on proposals
+- `/settings` — agency identity: name, logo, contact email, website
 
 `/` is an in-app home, not a marketing page — it sits behind `RequireAuth` like
 everything else, because everything it links to needs a session.

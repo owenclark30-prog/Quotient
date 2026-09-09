@@ -162,6 +162,9 @@ export type Database = {
           tier_id: string | null;
           industry_id: string | null;
           agency_name: string;
+          agency_logo: string | null;
+          agency_email: string | null;
+          agency_website: string | null;
           industry_name: string | null;
           tier_name: string;
           tier_description: string | null;
@@ -180,6 +183,9 @@ export type Database = {
           tier_id?: string | null;
           industry_id?: string | null;
           agency_name: string;
+          agency_logo?: string | null;
+          agency_email?: string | null;
+          agency_website?: string | null;
           industry_name?: string | null;
           tier_name: string;
           tier_description?: string | null;
@@ -198,6 +204,9 @@ export type Database = {
           tier_id?: string | null;
           industry_id?: string | null;
           agency_name?: string;
+          agency_logo?: string | null;
+          agency_email?: string | null;
+          agency_website?: string | null;
           industry_name?: string | null;
           tier_name?: string;
           tier_description?: string | null;
@@ -230,14 +239,23 @@ export type Database = {
         Row: {
           user_id: string;
           agency_name: string;
+          logo: string | null;
+          contact_email: string | null;
+          website: string | null;
         };
         Insert: {
           user_id: string;
           agency_name: string;
+          logo?: string | null;
+          contact_email?: string | null;
+          website?: string | null;
         };
         Update: {
           user_id?: string;
           agency_name?: string;
+          logo?: string | null;
+          contact_email?: string | null;
+          website?: string | null;
         };
         Relationships: [];
       };
@@ -264,4 +282,13 @@ export type ProposalPricing = {
   founding_setup_fee: number | null;
   founding_monthly_fee: number | null;
   founding_duration_months: number | null;
+};
+
+/** The agency's own identity, as it appears on a proposal. `logo` is a PNG
+ * data URI (see lib/logo.ts); the rest are plain text. */
+export type AgencyIdentity = {
+  agencyName: string;
+  logo: string | null;
+  contactEmail: string | null;
+  website: string | null;
 };

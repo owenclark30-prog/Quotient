@@ -498,13 +498,39 @@ input[type="password"] {
   margin: 0 0 32px;
 }
 
-.agency-name-row {
+.logo-row {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 16px;
 }
 
-.agency-name-row input {
-  flex: 1;
+.logo-preview {
+  max-width: 160px;
+  max-height: 56px;
+  /* Logos are usually transparent, and they're destined for a white page —
+     so preview them on white rather than on the dark surface. */
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  object-fit: contain;
+}
+
+.logo-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 160px;
+  height: 56px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.logo-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .field-hint {
@@ -756,6 +782,14 @@ input[type="password"] {
   margin-bottom: 32px;
 }
 
+.proposal-logo {
+  display: block;
+  max-width: 200px;
+  max-height: 48px;
+  object-fit: contain;
+  margin-bottom: 10px;
+}
+
 .proposal-agency {
   font-weight: 700;
   font-size: 1.05rem;
@@ -886,6 +920,19 @@ input[type="password"] {
   color: var(--text-muted);
   font-size: 0.8rem;
   text-align: center;
+}
+
+.proposal-contact {
+  margin-top: 6px;
+}
+
+.proposal-contact a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.proposal-contact a:hover {
+  text-decoration: underline;
 }
 
 @page {

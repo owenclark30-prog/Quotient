@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getAgencyNameOrDefault } from "@/lib/data/settings";
+import { getAgencyIdentityOrDefault } from "@/lib/data/settings";
 import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
@@ -38,6 +38,9 @@ function ProposalContent() {
   const [tierId, setTierId] = useState<string | null>(null);
   const [industryId, setIndustryId] = useState<string | null>(null);
   const [agencyName, setAgencyName] = useState<string | null>(null);
+  const [agencyLogo, setAgencyLogo] = useState<string | null>(null);
+  const [agencyEmail, setAgencyEmail] = useState<string | null>(null);
+  const [agencyWebsite, setAgencyWebsite] = useState<string | null>(null);
   const [documentDate, setDocumentDate] = useState<Date>(new Date());
   const [saved, setSaved] = useState(false);
 
@@ -72,6 +75,9 @@ function ProposalContent() {
           setTierId(proposal.tier_id);
           setIndustryId(proposal.industry_id);
           setAgencyName(proposal.agency_name);
+          setAgencyLogo(proposal.agency_logo);
+          setAgencyEmail(proposal.agency_email);
+          setAgencyWebsite(proposal.agency_website);
           setDocumentDate(new Date(proposal.created_at));
           setSaved(true);
           setTierName(proposal.tier_name);
@@ -86,13 +92,16 @@ function ProposalContent() {
               getTierWithServices(tierParam),
               getPricingRule(tierParam, industryParam),
               industryParam ? getIndustryById(industryParam) : Promise.resolve(null),
-              getAgencyNameOrDefault(),
+              getAgencyIdentityOrDefault(),
             ]);
 
           setClientName(clientParam);
           setTierId(tierParam);
           setIndustryId(industryParam);
-          setAgencyName(agency.agencyName);
+          setAgencyName(agency.identity.agencyName);
+          setAgencyLogo(agency.identity.logo);
+          setAgencyEmail(agency.identity.contactEmail);
+          setAgencyWebsite(agency.identity.website);
           setWarning(agency.warning);
           setDocumentDate(new Date());
           setSaved(false);
@@ -134,6 +143,9 @@ function ProposalContent() {
         tier_id: tierId,
         industry_id: industryId,
         agency_name: agencyName,
+        agency_logo: agencyLogo,
+        agency_email: agencyEmail,
+        agency_website: agencyWebsite,
         industry_name: industryName,
         tier_name: tierName,
         tier_description: tierDescription,
@@ -232,6 +244,9 @@ function ProposalContent() {
         services={services}
         pricing={pricing}
         agencyName={agencyName}
+        agencyLogo={agencyLogo}
+        agencyEmail={agencyEmail}
+        agencyWebsite={agencyWebsite}
         generatedDate={formatDate(documentDate)}
       />
     </main>
