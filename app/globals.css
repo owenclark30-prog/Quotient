@@ -516,15 +516,20 @@ input[type="password"] {
   object-fit: contain;
 }
 
+/* Not a "missing image" box — it previews the header the client actually gets
+   when there's no logo: the agency name, on white, as the letterhead. */
 .logo-preview-empty {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 160px;
   height: 56px;
-  background: var(--surface);
-  color: var(--text-muted);
-  font-size: 0.8rem;
+  color: #18181b;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-align: center;
+  line-height: 1.2;
+  overflow: hidden;
 }
 
 .logo-actions {
@@ -794,6 +799,13 @@ input[type="password"] {
   font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: 0.01em;
+}
+
+/* No logo: the name steps up to fill the space the logo would have held, so
+   the header reads as a deliberate wordmark rather than as a gap. */
+.proposal-agency-lead {
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
 }
 
 .proposal-date {

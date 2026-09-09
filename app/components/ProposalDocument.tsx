@@ -51,7 +51,15 @@ export function ProposalDocument({
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={agencyLogo} alt="" className="proposal-logo" />
           )}
-          <div className="proposal-agency">{agencyName}</div>
+          {/* With no logo the name *is* the letterhead, so it carries the
+              weight the logo would have. */}
+          <div
+            className={`proposal-agency${
+              agencyLogo ? "" : " proposal-agency-lead"
+            }`}
+          >
+            {agencyName}
+          </div>
         </div>
         <div className="proposal-date">{generatedDate}</div>
       </header>

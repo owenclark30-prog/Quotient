@@ -86,7 +86,7 @@ export function AgencySettings({
       </section>
 
       <section>
-        <label>Logo</label>
+        <label>Logo (optional)</label>
         <div className="logo-row">
           {draft.logo ? (
             // Decorative: the agency name sits beside it on the proposal, so
@@ -94,7 +94,9 @@ export function AgencySettings({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={draft.logo} alt="" className="logo-preview" />
           ) : (
-            <div className="logo-preview logo-preview-empty">No logo</div>
+            <div className="logo-preview logo-preview-empty">
+              {draft.agencyName.trim() || "No logo"}
+            </div>
           )}
           <div className="logo-actions">
             <button
@@ -123,8 +125,9 @@ export function AgencySettings({
           />
         </div>
         <p className="field-hint">
-          Appears above your agency name in the proposal header. A PNG with a
-          transparent background works best — it sits on white.
+          {draft.logo
+            ? "Appears above your agency name in the proposal header. A PNG with a transparent background works best — it sits on white."
+            : "Not required. Without one, your agency name is set larger and becomes the letterhead — the proposal is designed to look finished either way. Add a logo whenever you have one."}
         </p>
       </section>
 
@@ -145,7 +148,7 @@ export function AgencySettings({
           type="text"
           value={draft.website ?? ""}
           onChange={(e) => set("website", e.target.value)}
-          placeholder="ascendgrowth.co"
+          placeholder="youragency.co"
         />
         <p className="field-hint">
           Both appear in the proposal footer, so a client can reply or look you

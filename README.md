@@ -56,6 +56,19 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `proposals` — a saved quote. The agency name, **logo, contact email and website**, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card or the live settings. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can rebrand, edit or delete anything without touching a proposal already sent.
 - `settings` — one row per user (`user_id` PK): the agency name, logo, contact email and website that appear on their proposals. Everything but the name is optional and stored as NULL when blank, so "not set" is one value rather than two
 
+### No logo is a finished state, not a missing one
+
+Most agencies won't have a logo on day one, so the proposal is designed for both
+cases rather than treating the logo as the default. With no logo the agency name
+takes `.proposal-agency-lead` and steps up from 1.05rem to 1.45rem, filling the
+space the logo would have held so the header reads as a wordmark. The settings
+page previews exactly that — the empty slot shows the name on white, as the
+client will see it, rather than a grey "missing image" box.
+
+Adding a logo later changes nothing else: the name drops back to its smaller
+size and the logo sits above it. Proposals already sent keep the header they
+were sent with, logo or not.
+
 ### Why the logo is a data URI, not a file in a bucket
 
 `settings.logo` and `proposals.agency_logo` hold a PNG data URI. That trades row
