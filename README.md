@@ -114,7 +114,7 @@ risky change before it reaches production.
 ## Routes
 
 - `/login` — email/password sign in and sign up (the only public route)
-- `/` — home: the entry point into everything below
+- `/` — home: wordmark, motto, and a dashboard of real counts and recent proposals
 - `/proposals/new` — calculator: client name, industry, tier, live pricing
 - `/proposals` — list of saved proposals
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
@@ -123,20 +123,33 @@ risky change before it reaches production.
 - `/settings` — agency name shown on proposals
 
 `/` is an in-app home, not a marketing page — it sits behind `RequireAuth` like
-everything else, because every card on it points at a signed-in route. A new
-feature is added by appending one entry to `DESTINATIONS` in `app/page.tsx`;
-the grid is `auto-fill`, so it reflows on its own and needs no layout change.
+everything else, because everything it links to needs a session.
+
+Its dashboard is **real data only**: proposals sent, tiers and services are
+counted from the user's own rows, and "recent proposals" are their three latest.
+Nothing on it is a placeholder or a sample figure, so a brand-new account sees a
+prompt to build a rate card rather than a wall of zeros.
 
 Every signed-in route renders `AppNav` (`app/components/AppNav.tsx`) from the
-root layout: branding, the three nav links, and an account menu holding agency
-settings and sign out. It returns `null` when there's no session, so `/login`
-has no chrome, and it's hidden in print. The brand is the link home; there's no
-separate "Home" nav item.
+root layout: branding, a "Proposals" dropdown, and an account menu holding
+agency settings and sign out. It returns `null` when there's no session, so
+`/login` has no chrome, and it's hidden in print. The brand is the link home;
+there's no separate "Home" nav item.
 
-Each nav link carries **its own `isActive` predicate** rather than sharing a
-prefix test. This matters: `/proposals` is a prefix of `/proposals/new`, so a
-`startsWith` check lights up both "Proposals" and "Past proposals" at the same
-time on the calculator. Any nested route added later has the same trap.
+Navigation is a **dropdown, not a row of links**, so a new area is one entry in
+`NAV_MENUS` and the bar itself never has to change shape. Two details are load-
+bearing:
+
+- `.app-nav-inner` sits **above** the click-catching backdrop. Without that, an
+  open menu covers the other menu's trigger and you have to close one before
+  opening the other.
+- `.app-nav-links` must **not** set `overflow-x`. Clipping one axis forces the
+  other to clip too, which silently cuts off the dropdown panel hanging below
+  the bar — it stays in the DOM and renders nowhere.
+
+Active state is computed per menu (does any item match, plus `/proposal` for the
+proposals group) rather than by prefix: `/proposals` is a prefix of
+`/proposals/new`, so `startsWith` would light up two things at once.
 
 ## Theme
 
@@ -146,10 +159,11 @@ is changed in one place.
 
 Two things are deliberate rather than accidental:
 
-- **`--accent` vs `--accent-bright`.** `--accent` (`#0b5c4e`) is for *filled*
-  surfaces only, where white text sits on it. It's 2.4:1 against the page
-  background, so anything that has to be **read as** the accent — links,
-  selected borders, focus rings — uses `--accent-bright` (`#2fb89d`) instead.
+- **The accent is Petronas teal (`#00d2be`) and it takes dark ink, not white.**
+  At 10.04:1 on the page background it's bright enough to serve as link, border
+  and wordmark colour directly — but that same brightness means white text on
+  top of it fails badly (1.92:1). Filled surfaces therefore use `--accent-ink`
+  (`#07120f`, 9.94:1). Never put `#fff` on the accent.
 - **`--border` vs `--border-strong`.** `--border` is a decorative hairline.
   Anything that bounds a control (inputs, hover states, the account menu) uses
   `--border-strong`, which clears the 3:1 WCAG ratio for non-text contrast.

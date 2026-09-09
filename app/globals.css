@@ -10,12 +10,14 @@
   --text: #e8eae7;
   --text-muted: #8a8f8c;
 
-  /* Filled surfaces only — white text sits on this. */
-  --accent: #0b5c4e;
-  --accent-hover: #0e6b5c;
-  /* Anything the accent has to be *read as* on the dark background: links,
-     selected borders, focus rings. --accent itself is only 2.4:1 there. */
-  --accent-bright: #2fb89d;
+  /* Petronas teal. Bright enough to read as itself on the dark ground
+     (10.04:1), so it doubles as link/border colour — but that same brightness
+     means white text on top of it fails (1.92:1). Filled surfaces take
+     --accent-ink, near-black, at 10.2:1. */
+  --accent: #00d2be;
+  --accent-hover: #3ddad0;
+  --accent-ink: #07120f;
+  --accent-bright: #00d2be;
   --border-selected: var(--accent-bright);
 
   --danger: #f87171;
@@ -83,7 +85,7 @@ input[type="text"] {
   border: none;
   border-radius: 8px;
   background: var(--accent);
-  color: #ffffff;
+  color: var(--accent-ink);
   font: inherit;
   font-weight: 600;
   font-size: 0.9rem;
@@ -140,6 +142,11 @@ input[type="text"] {
   display: flex;
   align-items: center;
   gap: 24px;
+  /* Above .app-nav-backdrop, so the other menu's trigger stays clickable while
+     one menu is open — clicking Account should switch straight to it rather
+     than being swallowed by the backdrop. Carries the menus up with it. */
+  position: relative;
+  z-index: 12;
 }
 
 .app-nav-brand {
@@ -156,7 +163,8 @@ input[type="text"] {
   gap: 18px;
   /* Push the account menu to the far edge. */
   margin-right: auto;
-  overflow-x: auto;
+  /* No overflow clipping here: a clip on one axis forces the other to clip
+     too, which would cut off the dropdown panel hanging below the bar. */
 }
 
 .app-nav-link {
@@ -173,6 +181,32 @@ input[type="text"] {
 .app-nav-link.active {
   color: var(--text);
   font-weight: 600;
+}
+
+.app-nav-menu-wrap {
+  position: relative;
+}
+
+/* A menu trigger that reads as one of the nav links, not as a control. */
+.app-nav-link-button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.app-nav-menu-left {
+  right: auto;
+  left: 0;
+}
+
+.app-nav-menu-item.current {
+  color: var(--accent-bright);
 }
 
 .app-nav-account {
@@ -243,41 +277,96 @@ input[type="text"] {
 
 /* Home */
 
-.home-grid {
-  display: grid;
-  /* auto-fill, so a fourth and fifth destination need no layout change. The
-     200px floor fits three across the 672px content column and drops to two,
-     then one, as the viewport narrows. */
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 12px;
+.hero {
+  position: relative;
+  text-align: center;
+  padding: 56px 0 64px;
+  margin-bottom: 8px;
 }
 
-.home-card {
+/* A soft pool of accent behind the wordmark. Decorative and behind the text,
+   so it carries no contrast requirement of its own. */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 100%);
+  aspect-ratio: 2 / 1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 210, 190, 0.13),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-mark {
+  font-size: clamp(3rem, 11vw, 5rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--accent-bright);
+  margin: 0;
+}
+
+.hero-motto {
+  margin: 14px 0 0;
+  font-size: 1rem;
+  color: var(--text-muted);
+}
+
+.hero-cta {
+  margin-top: 28px;
+  text-decoration: none;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 40px;
+}
+
+.stat {
   display: flex;
   flex-direction: column;
   gap: 6px;
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--surface);
-  padding: 20px;
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.12s ease;
+  padding: 16px 18px;
 }
 
-.home-card:hover {
-  border-color: var(--border-strong);
-}
-
-.home-card-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.home-card-description {
-  font-size: 0.85rem;
-  line-height: 1.45;
+.stat-label {
+  font-size: 0.78rem;
   color: var(--text-muted);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+  gap: 16px;
+}
+
+.home-section-header .section-title {
+  margin: 0;
 }
 
 .page-header {
@@ -595,6 +684,7 @@ input[type="password"] {
   --text-muted: #71717a;
   --accent: #18181b;
   --accent-bright: #18181b;
+  --accent-ink: #ffffff;
 
   color: var(--text);
   color-scheme: light;
