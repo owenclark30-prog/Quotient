@@ -1167,3 +1167,65 @@ input[type="password"] {
   line-height: 1.65;
   color: var(--text);
 }
+
+.starter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.starter-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  text-align: left;
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+}
+
+.starter-card:hover:not(:disabled) {
+  border-style: solid;
+  border-color: var(--accent-bright);
+}
+
+/* Already created: still readable, but clearly not a thing to click again. */
+.starter-card:disabled {
+  cursor: default;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.starter-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.starter-card-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent-bright);
+}
+
+.starter-card-description {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+/* Keeps "Or name your own" on the same row as the input it labels. */
+.editor-row-label {
+  margin-bottom: 0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

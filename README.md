@@ -103,6 +103,25 @@ Postgres 15+) keeps both properties: cross-user links stay impossible, and the
 parent can still be deleted. Any future soft link on a composite FK needs the
 same treatment.
 
+#### Starters
+
+`lib/onboarding-starters.ts` holds four ready-made documents — welcome pack,
+intake form, kickoff checklist, contract. Each is shaped like the document it
+actually is (the intake form is a form, the checklist is checkboxes), because
+four templates that all read like the same letter save nobody any time.
+
+Placeholder coverage is deliberately uneven: the intake form omits
+`{{services}}` — you're asking questions, not re-listing what they bought — and
+the kickoff checklist omits `{{agency_name}}` because it's marked internal.
+
+The contract carries a `caution`, shown once after creating, and opens with a
+delete-before-sending block. It is a starting point, not legal advice, and it
+has fill-in blanks rather than invented terms. It is the one starter that
+should not go out without a solicitor reading it.
+
+A starter whose name already exists is disabled rather than left to fail on the
+`unique (user_id, name)` constraint.
+
 #### Templates are plain text, never HTML
 
 Rendered with `white-space: pre-wrap`. A template body that could carry markup

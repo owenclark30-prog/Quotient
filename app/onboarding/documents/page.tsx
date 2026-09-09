@@ -9,18 +9,15 @@ import {
 import { getTiers } from "@/lib/data/tiers";
 import { errorMessage } from "@/lib/errors";
 import type { OnboardingDocument, Tier } from "@/lib/supabase/types";
+import {
+  BLANK_STARTER,
+  DOCUMENT_STARTERS,
+  type DocumentStarter,
+} from "@/lib/onboarding-starters";
 import { OnboardingDocumentEditor } from "../../components/OnboardingDocumentEditor";
 import { RequireAuth } from "../../components/RequireAuth";
 
-const STARTER_BODY = `Welcome aboard, {{client_name}}.
 
-Here's what happens next and what's included in your {{tier_name}} package.
-
-{{services}}
-
-If anything here needs changing, just reply to this and we'll sort it.
-
-— {{agency_name}}`;
 
 export default function OnboardingDocumentsPage() {
   return (
@@ -40,6 +37,7 @@ function OnboardingDocuments() {
   const [error, setError] = useState<string | null>(null);
   const [newName, setNewName] = useState("");
   const [adding, setAdding] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const [documentsData, tiersData, linksData] = await Promise.all([
@@ -58,23 +56,37 @@ function OnboardingDocuments() {
       .finally(() => setLoading(false));
   }, [load]);
 
-  async function handleAdd() {
-    const name = newName.trim();
-    if (!name) return;
+  async function add(name: string, body: string, caution?: string) {
     setAdding(true);
     setError(null);
+    setNotice(null);
     try {
-      // Seeded with a working example, so the placeholder syntax is obvious
-      // from the first document rather than from the hint text.
-      await createOnboardingDocument(name, STARTER_BODY);
-      setNewName("");
+      await createOnboardingDocument(name, body);
       await load();
+      if (caution) setNotice(caution);
     } catch (err) {
       setError(errorMessage(err, "Couldn't create that document."));
     } finally {
       setAdding(false);
     }
   }
+
+  async function handleStarter(starter: DocumentStarter) {
+    await add(starter.name, starter.body, starter.caution);
+  }
+
+  async function handleAdd() {
+    const name = newName.trim();
+    if (!name) return;
+    // Custom documents get a minimal working example, so the placeholder
+    // syntax is obvious from the first one rather than from the hint text.
+    await add(name, BLANK_STARTER);
+    setNewName("");
+  }
+
+  const existingNames = new Set(
+    documents.map((document) => document.name.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -92,11 +104,44 @@ function OnboardingDocuments() {
       </p>
 
       {error && <div className="empty-state error-state">{error}</div>}
+      {notice && <div className="warning-banner">{notice}</div>}
+
+      <section>
+        <label>Start from a common document</label>
+        <div className="starter-grid">
+          {DOCUMENT_STARTERS.map((starter) => {
+            // Names are unique per user, so a second click would just fail at
+            // the database. Say why it's unavailable instead.
+            const exists = existingNames.has(starter.name.toLowerCase());
+            return (
+              <button
+                key={starter.name}
+                type="button"
+                className="starter-card"
+                onClick={() => handleStarter(starter)}
+                disabled={exists || adding}
+                title={exists ? "You already have this one" : undefined}
+              >
+                <span className="starter-card-title">
+                  {starter.name}
+                  {exists && <span className="starter-card-tag">Added</span>}
+                </span>
+                <span className="starter-card-description">
+                  {starter.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <p className="field-hint">
+          Each one is a starting point you own and rewrite — nothing is
+          generated per client except the placeholders.
+        </p>
+      </section>
 
       {documents.length === 0 && (
         <div className="empty-state">
-          No documents yet. A welcome pack, an intake form, a kickoff checklist
-          — anything you send every new client.
+          No documents yet. Start from one above, or name your own below.
         </div>
       )}
 
@@ -118,12 +163,15 @@ function OnboardingDocuments() {
       ))}
 
       <div className="editor-row editor-row-new">
+        <label htmlFor="new-document" className="editor-row-label">
+          Or name your own
+        </label>
         <input
+          id="new-document"
           type="text"
           value={newName}
-          placeholder="e.g. Welcome pack"
+          placeholder="e.g. Offboarding summary"
           onChange={(e) => setNewName(e.target.value)}
-          aria-label="New document name"
         />
         <button
           type="button"
