@@ -38,6 +38,10 @@ WHAT YOU'RE ON
 WHAT'S INCLUDED
 {{services}}
 
+WHAT IT COSTS
+Setup: {{setup_fee}}
+Ongoing: {{monthly_fee}}
+
 WHAT HAPPENS NEXT
 1. You'll get an intake form from us within 24 hours. The sooner it comes back, the sooner we start.
 2. We'll book a kickoff call to walk through your goals and collect access.
@@ -162,6 +166,10 @@ Internal. Not sent to the client as-is.
 --- WHAT WE'RE DELIVERING ---
 {{services}}
 
+Setup: {{setup_fee}}    Ongoing: {{monthly_fee}}
+[ ] Setup fee invoiced and cleared
+[ ] Recurring billing set up for the ongoing fee
+
 
 --- FIRST WEEK ---
 [ ] Accounts and tracking live and verified
@@ -206,8 +214,8 @@ Anything not on that list is out of scope, and we'll quote it separately before 
 
 2. FEES
 
-Setup fee:       £____________  due ____________________
-Monthly fee:     £____________  due on the ______ of each month
+Setup fee:       {{setup_fee}}, due ____________________
+Monthly fee:     {{monthly_fee}}, due on the ______ of each month
 Payment terms:   ______ days from invoice
 
 

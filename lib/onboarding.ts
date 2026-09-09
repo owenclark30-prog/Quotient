@@ -1,4 +1,8 @@
-import type { ProposalServiceSnapshot } from "@/lib/supabase/types";
+import type {
+  ProposalPricing,
+  ProposalServiceSnapshot,
+} from "@/lib/supabase/types";
+import { formatGBP } from "@/lib/format";
 
 /** The values a template can interpolate. Everything here comes off the
  * proposal, so a generated document can never disagree with the quote it
@@ -8,6 +12,7 @@ export type PlaceholderValues = {
   agency_name: string;
   tier_name: string;
   services: ProposalServiceSnapshot[];
+  pricing: ProposalPricing;
 };
 
 export const PLACEHOLDERS = [
@@ -15,6 +20,8 @@ export const PLACEHOLDERS = [
   { token: "agency_name", description: "Your agency name" },
   { token: "tier_name", description: "The tier they're on" },
   { token: "services", description: "What's included, one per line" },
+  { token: "setup_fee", description: "The one-off setup fee" },
+  { token: "monthly_fee", description: "The monthly fee, founding rate included" },
 ] as const;
 
 const TOKEN_PATTERN = /\{\{\s*([a-z_]+)\s*\}\}/gi;
@@ -42,6 +49,26 @@ export function usedPlaceholders(body: string): string[] {
     if (isKnownPlaceholder(token)) found.add(token);
   }
   return [...found];
+}
+
+/** What they actually pay up front — the founding rate when there is one. */
+function setupFee(pricing: ProposalPricing) {
+  return formatGBP(pricing.founding_setup_fee ?? pricing.setup_fee);
+}
+
+/** The whole obligation, not just the headline. A founding rate means the fee
+ * changes partway through, and a document that stated only the discounted
+ * figure would understate what the client owes from month four — so the
+ * placeholder renders the full sentence rather than a single number. */
+function monthlyFee(pricing: ProposalPricing) {
+  const standard = `${formatGBP(pricing.monthly_fee)} per month`;
+  if (pricing.founding_monthly_fee == null) return standard;
+
+  const founding = formatGBP(pricing.founding_monthly_fee);
+  const months = pricing.founding_duration_months;
+  const period =
+    months == null ? "initially" : `for the first ${months} months`;
+  return `${founding} per month ${period}, then ${standard}`;
 }
 
 function serviceLines(services: ProposalServiceSnapshot[]) {
@@ -73,6 +100,10 @@ export function renderTemplate(body: string, values: PlaceholderValues) {
         return values.tier_name;
       case "services":
         return serviceLines(values.services);
+      case "setup_fee":
+        return setupFee(values.pricing);
+      case "monthly_fee":
+        return monthlyFee(values.pricing);
       default:
         return whole;
     }

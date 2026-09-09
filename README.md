@@ -114,6 +114,14 @@ Placeholder coverage is deliberately uneven: the intake form omits
 `{{services}}` — you're asking questions, not re-listing what they bought — and
 the kickoff checklist omits `{{agency_name}}` because it's marked internal.
 
+`{{monthly_fee}}` renders a sentence, not a number. With a founding rate the fee
+changes partway through, and a document stating only the discounted figure would
+understate what the client owes from month four — so it renders
+"£1,000 per month for the first 3 months, then £1,500 per month".
+`{{setup_fee}}` is the single amount actually due, founding rate applied. Both
+read the pricing already frozen onto the proposal, so a document can never quote
+a different figure from the quote it was attached to.
+
 The contract carries a `caution`, shown once after creating, and opens with a
 delete-before-sending block. It is a starting point, not legal advice, and it
 has fill-in blanks rather than invented terms. It is the one starter that

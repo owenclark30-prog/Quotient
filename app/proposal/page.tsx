@@ -204,6 +204,9 @@ function ProposalContent() {
               agency_name: agencyName,
               tier_name: tierName,
               services,
+              // The same frozen pricing the proposal renders, so a document
+              // can never quote a different figure to the quote it came with.
+              pricing,
             },
             documents: chosen,
           });
