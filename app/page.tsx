@@ -64,7 +64,9 @@ function Home() {
     <main className="home">
       <section className="hero">
         <h1 className="hero-mark">Quotient</h1>
-        <p className="hero-motto">Price the offer. Send the proposal.</p>
+        <p className="hero-motto">
+          Everything your automation agency runs on.
+        </p>
         <Link href="/proposals/new" className="button-primary hero-cta">
           New proposal
         </Link>

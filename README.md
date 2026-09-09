@@ -131,14 +131,16 @@ Nothing on it is a placeholder or a sample figure, so a brand-new account sees a
 prompt to build a rate card rather than a wall of zeros.
 
 Every signed-in route renders `AppNav` (`app/components/AppNav.tsx`) from the
-root layout: branding, a "Proposals" dropdown, and an account menu holding
-agency settings and sign out. It returns `null` when there's no session, so
-`/login` has no chrome, and it's hidden in print. The brand is the link home;
-there's no separate "Home" nav item.
+root layout: branding, the nav entries, and an account menu holding agency
+settings and sign out. It returns `null` when there's no session, so `/login`
+has no chrome, and it's hidden in print. The brand is the link home; there's no
+separate "Home" nav item.
 
-Navigation is a **dropdown, not a row of links**, so a new area is one entry in
-`NAV_MENUS` and the bar itself never has to change shape. Two details are load-
-bearing:
+A nav entry in `NAV` is either a `"menu"` (a dropdown of pages, like Proposals)
+or a `"link"` (a single destination, like Rate card) — so a new area is one
+entry and the bar never has to change shape. Rate card is deliberately *not*
+under Proposals: it's the offer itself, not a quote of it. Two details are
+load-bearing:
 
 - `.app-nav-inner` sits **above** the click-catching backdrop. Without that, an
   open menu covers the other menu's trigger and you have to close one before

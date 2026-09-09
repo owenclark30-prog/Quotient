@@ -6,19 +6,32 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
 
-/* Everything the app does today sits under one menu. A second top-level menu
- * goes in NAV_MENUS beside this one, and the bar needs no other change. */
-const NAV_MENUS = [
+type NavItem = { href: string; label: string };
+type NavEntry =
+  | { kind: "link"; id: string; label: string; href: string }
+  | { kind: "menu"; id: string; label: string; items: NavItem[] };
+
+/* An area is either a dropdown of pages or a single link. Adding one — CRM,
+ * pipelines, guides — is an entry here and nothing else. */
+const NAV: NavEntry[] = [
   {
+    kind: "menu",
     id: "proposals",
     label: "Proposals",
     items: [
       { href: "/proposals/new", label: "New proposal" },
       { href: "/proposals", label: "Past proposals" },
-      { href: "/rate-card", label: "Rate card" },
     ],
   },
+  { kind: "link", id: "rate-card", label: "Rate card", href: "/rate-card" },
 ];
+
+function isEntryActive(entry: NavEntry, pathname: string) {
+  if (entry.kind === "link") return pathname === entry.href;
+  // A generated document belongs to the proposals group.
+  if (entry.id === "proposals" && pathname === "/proposal") return true;
+  return entry.items.some((item) => pathname === item.href);
+}
 
 export function AppNav() {
   const { session, loading } = useAuth();
@@ -51,31 +64,40 @@ export function AppNav() {
         </Link>
 
         <nav className="app-nav-links">
-          {NAV_MENUS.map((menu) => {
-            // /proposal (a generated document) belongs to this group too.
-            const active =
-              menu.items.some((item) => pathname === item.href) ||
-              (menu.id === "proposals" && pathname === "/proposal");
+          {NAV.map((entry) => {
+            const active = isEntryActive(entry, pathname);
+
+            if (entry.kind === "link") {
+              return (
+                <Link
+                  key={entry.id}
+                  href={entry.href}
+                  className={`app-nav-link${active ? " active" : ""}`}
+                >
+                  {entry.label}
+                </Link>
+              );
+            }
 
             return (
-              <div key={menu.id} className="app-nav-menu-wrap">
+              <div key={entry.id} className="app-nav-menu-wrap">
                 <button
                   type="button"
                   className={`app-nav-link app-nav-link-button${
                     active ? " active" : ""
                   }`}
-                  aria-expanded={openMenu === menu.id}
-                  onClick={() => toggle(menu.id)}
+                  aria-expanded={openMenu === entry.id}
+                  onClick={() => toggle(entry.id)}
                 >
-                  {menu.label}
+                  {entry.label}
                   <span aria-hidden="true" className="app-nav-caret">
                     ▾
                   </span>
                 </button>
 
-                {openMenu === menu.id && (
+                {openMenu === entry.id && (
                   <div className="app-nav-menu app-nav-menu-left">
-                    {menu.items.map((item) => (
+                    {entry.items.map((item) => (
                       <Link
                         key={item.href}
                         href={item.href}
