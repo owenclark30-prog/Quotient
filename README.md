@@ -169,6 +169,16 @@ Two things are deliberate rather than accidental:
 - **`--border` vs `--border-strong`.** `--border` is a decorative hairline.
   Anything that bounds a control (inputs, hover states, the account menu) uses
   `--border-strong`, which clears the 3:1 WCAG ratio for non-text contrast.
+- **`--grid-line` is a contrast budget.** `body::before` paints a fixed graph-
+  paper grid behind the app. Text can land on a line, so the line's alpha costs
+  contrast: at `0.032` the worst case (muted text on a line) is 5.53:1 versus
+  5.85:1 on the flat ground. Around `0.06` that headroom is spent — check
+  before raising it.
+
+The brand wordmark is **"Quotient."**, full stop included, and appears in three
+places: the hero, the nav brand, and the login heading. It deliberately never
+appears on a proposal — that document carries the *agency's* name, because they
+send it to their own clients.
 
 `.proposal` is a **light island**: it re-declares the same tokens with light
 values and sets `color-scheme: light`, so the document an agency owner sends to

@@ -60,7 +60,7 @@ export function AppNav() {
     <header className="app-nav">
       <div className="app-nav-inner">
         <Link href="/" className="app-nav-brand">
-          Quotient
+          Quotient.
         </Link>
 
         <nav className="app-nav-links">

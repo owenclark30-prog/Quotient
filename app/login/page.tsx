@@ -62,7 +62,7 @@ export default function LoginPage() {
 
   return (
     <main className="auth-main">
-      <h1>Quotient</h1>
+      <h1>Quotient.</h1>
       <p className="subtitle">
         {mode === "signin" ? "Sign in to your account" : "Create an account"}
       </p>

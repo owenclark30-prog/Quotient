@@ -63,7 +63,7 @@ function Home() {
   return (
     <main className="home">
       <section className="hero">
-        <h1 className="hero-mark">Quotient</h1>
+        <h1 className="hero-mark">Quotient.</h1>
         <p className="hero-motto">
           Everything your automation agency runs on.
         </p>

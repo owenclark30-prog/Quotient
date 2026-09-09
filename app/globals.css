@@ -22,6 +22,11 @@
 
   --danger: #f87171;
   --danger-hover: #fca5a5;
+
+  /* Backdrop texture. Worst case is muted text landing on a line: 5.53:1,
+     against 5.85:1 on the flat ground — so the grid costs almost no contrast.
+     Raising this alpha spends that headroom; 0.06 is about the limit. */
+  --grid-line: rgba(255, 255, 255, 0.032);
 }
 
 * {
@@ -36,7 +41,28 @@ body {
     Helvetica, Arial, sans-serif;
 }
 
+/* Graph-paper texture behind everything. Fixed, so it stays put on scroll and
+   fills the empty lower half of a short page instead of flat black. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: linear-gradient(
+      to right,
+      var(--grid-line) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+/* Both lift above the grid. The nav outranks main so its dropdown isn't
+   painted over by page content further down the document. */
 main {
+  position: relative;
+  z-index: 1;
   max-width: 720px;
   margin: 0 auto;
   padding: 48px 24px 96px;
@@ -130,6 +156,8 @@ input[type="text"] {
 /* Nav shell */
 
 .app-nav {
+  position: relative;
+  z-index: 2;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
@@ -879,7 +907,8 @@ input[type="password"] {
   }
 
   .no-print,
-  .app-nav {
+  .app-nav,
+  body::before {
     display: none !important;
   }
 
