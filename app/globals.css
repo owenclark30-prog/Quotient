@@ -356,6 +356,43 @@ input[type="text"] {
   text-decoration: none;
 }
 
+/* The app's areas, under the hero. auto-fill, so a fourth and fifth need no
+   layout change; the 200px floor fits three across the 672px column. */
+.home-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 36px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 18px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease;
+}
+
+.home-card:hover {
+  border-color: var(--border-strong);
+}
+
+.home-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.home-card-description {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .stat-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -1091,4 +1128,42 @@ input[type="password"] {
   border-style: solid;
   border-color: #a8434d;
   margin-bottom: 20px;
+}
+
+/* Onboarding */
+
+.template-body {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.field-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95em;
+  color: var(--accent-bright);
+}
+
+.onboarding-attach {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 18px;
+  margin-bottom: 28px;
+}
+
+/* The frozen document body. Rendered as text, never as HTML — pre-wrap is what
+   keeps the author's line breaks without parsing anything in it. */
+.document-body {
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text);
 }

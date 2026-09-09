@@ -23,6 +23,12 @@ const NAV: NavEntry[] = [
       { href: "/proposals", label: "Past proposals" },
     ],
   },
+  {
+    kind: "menu",
+    id: "onboarding",
+    label: "Onboarding",
+    items: [{ href: "/onboarding/documents", label: "Documents" }],
+  },
   { kind: "link", id: "rate-card", label: "Rate card", href: "/rate-card" },
 ];
 
@@ -30,6 +36,8 @@ function isEntryActive(entry: NavEntry, pathname: string) {
   if (entry.kind === "link") return pathname === entry.href;
   // A generated document belongs to the proposals group.
   if (entry.id === "proposals" && pathname === "/proposal") return true;
+  if (entry.id === "onboarding" && pathname.startsWith("/onboarding/document/"))
+    return true;
   return entry.items.some((item) => pathname === item.href);
 }
 

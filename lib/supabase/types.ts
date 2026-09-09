@@ -235,6 +235,107 @@ export type Database = {
           },
         ];
       };
+      onboarding_documents: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          body: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          body: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          body?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      tier_onboarding_documents: {
+        Row: { user_id: string; tier_id: string; document_id: string };
+        Insert: { user_id: string; tier_id: string; document_id: string };
+        Update: { user_id?: string; tier_id?: string; document_id?: string };
+        Relationships: [];
+      };
+      onboarding_runs: {
+        Row: {
+          id: string;
+          user_id: string;
+          proposal_id: string | null;
+          tier_id: string | null;
+          client_name: string;
+          tier_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          proposal_id?: string | null;
+          tier_id?: string | null;
+          client_name: string;
+          tier_name: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          proposal_id?: string | null;
+          tier_id?: string | null;
+          client_name?: string;
+          tier_name?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      onboarding_run_documents: {
+        Row: {
+          id: string;
+          user_id: string;
+          run_id: string;
+          document_id: string | null;
+          name: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          run_id: string;
+          document_id?: string | null;
+          name: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          run_id?: string;
+          document_id?: string | null;
+          name?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "onboarding_run_documents_run_fkey";
+            columns: ["run_id", "user_id"];
+            isOneToOne: false;
+            referencedRelation: "onboarding_runs";
+            referencedColumns: ["id", "user_id"];
+          },
+        ];
+      };
       settings: {
         Row: {
           user_id: string;
@@ -292,3 +393,10 @@ export type AgencyIdentity = {
   contactEmail: string | null;
   website: string | null;
 };
+
+export type OnboardingDocument =
+  Database["public"]["Tables"]["onboarding_documents"]["Row"];
+export type OnboardingRun =
+  Database["public"]["Tables"]["onboarding_runs"]["Row"];
+export type OnboardingRunDocument =
+  Database["public"]["Tables"]["onboarding_run_documents"]["Row"];

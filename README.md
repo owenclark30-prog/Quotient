@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema. Migrations `0001`–`0013` have already been applied to the
+3. Apply the schema. Migrations `0001`–`0014` have already been applied to the
    live project — this step is only needed when setting up a fresh Supabase
    project. `seed.sql` is optional and seeds one named account; new users are
    meant to start with an empty rate card and build their own.
@@ -54,6 +54,10 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `industries` — optional vertical a proposal can be tagged with, managed in the rate-card builder. **Label and tailoring only — deliberately not a price differentiator** (see below)
 - `pricing_rules` — setup/monthly fee per tier. Optional founding rate (discounted setup/monthly for a set number of months). `industry_id` exists and the resolution logic prefers an industry-specific rule over the generic one, but **no UI writes industry-specific rules and none should be added without an explicit decision** — see below. In practice every rule has `industry_id IS NULL`.
 - `proposals` — a saved quote. The agency name, **logo, contact email and website**, tier name and description, industry name, service list and all fees are snapshotted at save time, so a saved proposal renders entirely from its own row and never reads the live rate card or the live settings. `tier_id`/`industry_id` are soft links that null out if the row is deleted — you can rebrand, edit or delete anything without touching a proposal already sent.
+- `onboarding_documents` — reusable document templates (welcome pack, intake form) with `{{placeholders}}`. The agency's own asset: edit and delete freely
+- `tier_onboarding_documents` — join table: which documents a tier pre-selects on a proposal. Composite FKs like `tier_services`
+- `onboarding_runs` — one client's onboarding. `client_name`/`tier_name` are snapshots; `proposal_id`/`tier_id` are soft links
+- `onboarding_run_documents` — the document **as the client received it**, placeholders already filled. Nothing reads a template through this
 - `settings` — one row per user (`user_id` PK): the agency name, logo, contact email and website that appear on their proposals. Everything but the name is optional and stored as NULL when blank, so "not set" is one value rather than two
 
 ### No logo is a finished state, not a missing one
@@ -68,6 +72,43 @@ client will see it, rather than a grey "missing image" box.
 Adding a logo later changes nothing else: the name drops back to its smaller
 size and the logo sits above it. Proposals already sent keep the header they
 were sent with, logo or not.
+
+### Onboarding: authoring vs runtime
+
+The split between those four tables is the whole design. `onboarding_documents`
+is what the agency writes and rewrites. `onboarding_run_documents` is what a
+client actually got — rendered once, at save time, and never re-derived.
+
+Verified against the live database, not assumed:
+
+| Action | Effect on a client's copy |
+|---|---|
+| Rewrite the template | none — copy unchanged |
+| Delete the template | none — copy survives, `document_id` nulls |
+| Delete the tier | run survives, `tier_name` kept, `tier_id` nulls |
+| **Delete the proposal** | run and its documents survive, `proposal_id` nulls |
+| Delete the run | its documents cascade |
+
+Deleting a proposal deliberately does **not** touch onboarding: onboarding is
+work being done for a client, not an attachment to a quote.
+
+#### The `ON DELETE SET NULL (column)` trap
+
+`onboarding_runs.tier_id` and `onboarding_run_documents.document_id` are soft
+links on **composite** FKs. A bare `ON DELETE SET NULL` there nulls *every*
+referencing column, `user_id` included — and `user_id` is `NOT NULL`, so
+deleting a template that any client had received failed with `23502` instead of
+softening the link. Naming the column (`on delete set null (document_id)`,
+Postgres 15+) keeps both properties: cross-user links stay impossible, and the
+parent can still be deleted. Any future soft link on a composite FK needs the
+same treatment.
+
+#### Templates are plain text, never HTML
+
+Rendered with `white-space: pre-wrap`. A template body that could carry markup
+would be a phishing vector on a document the agency prints and sends on.
+Unknown `{{tokens}}` are left literal rather than blanked, so a typo shows up in
+the editor's warning and in preview instead of silently removing a word.
 
 ### Why the logo is a data URI, not a file in a bucket
 
@@ -157,6 +198,8 @@ risky change before it reaches production.
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
 - `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
+- `/onboarding/documents` — template builder: write documents, attach them to tiers
+- `/onboarding/document/[id]` — one frozen document as a client received it, printable
 - `/settings` — agency identity: name, logo, contact email, website
 
 `/` is an in-app home, not a marketing page — it sits behind `RequireAuth` like

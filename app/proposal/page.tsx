@@ -8,8 +8,16 @@ import { getIndustryById } from "@/lib/data/industries";
 import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
 import { createProposal, getProposalById } from "@/lib/data/proposals";
+import {
+  createOnboardingRun,
+  getOnboardingDocuments,
+  getRunDocuments,
+  getRunForProposal,
+  getTierDocumentLinks,
+} from "@/lib/data/onboarding";
 import { errorMessage } from "@/lib/errors";
 import type {
+  OnboardingDocument,
   ProposalPricing,
   ProposalServiceSnapshot,
 } from "@/lib/supabase/types";
@@ -55,6 +63,15 @@ function ProposalContent() {
   const [warning, setWarning] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Templates offered before saving; frozen copies after.
+  const [documents, setDocuments] = useState<OnboardingDocument[]>([]);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [attached, setAttached] = useState<
+    { id: string; name: string }[]
+  >([]);
+
   useEffect(() => {
     if (!hasValidParams) {
       setLoading(false);
@@ -85,6 +102,10 @@ function ProposalContent() {
           setServices(proposal.services);
           setPricing(proposal);
           setIndustryName(proposal.industry_name);
+
+          const run = await getRunForProposal(proposal.id);
+          // Frozen at save time; the live templates are never consulted here.
+          setAttached(run ? await getRunDocuments(run.id) : []);
         } else if (clientParam && tierParam) {
           const [tierData, tierServiceRows, pricingRule, industryData, agency] =
             await Promise.all([
@@ -94,6 +115,19 @@ function ProposalContent() {
               industryParam ? getIndustryById(industryParam) : Promise.resolve(null),
               getAgencyIdentityOrDefault(),
             ]);
+
+          const [documentsData, links] = await Promise.all([
+            getOnboardingDocuments(),
+            getTierDocumentLinks(),
+          ]);
+          setDocuments(documentsData);
+          setSelectedDocumentIds(
+            new Set(
+              links
+                .filter((link) => link.tier_id === tierParam)
+                .map((link) => link.document_id)
+            )
+          );
 
           setClientName(clientParam);
           setTierId(tierParam);
@@ -156,6 +190,35 @@ function ProposalContent() {
         founding_monthly_fee: pricing.founding_monthly_fee,
         founding_duration_months: pricing.founding_duration_months,
       });
+
+      const chosen = documents.filter((document) =>
+        selectedDocumentIds.has(document.id)
+      );
+      if (chosen.length > 0) {
+        try {
+          await createOnboardingRun({
+            proposalId: created.id,
+            tierId,
+            values: {
+              client_name: clientName,
+              agency_name: agencyName,
+              tier_name: tierName,
+              services,
+            },
+            documents: chosen,
+          });
+        } catch (err) {
+          // The proposal itself is already saved, so this must not read as a
+          // failed save — say exactly what did and didn't happen.
+          setError(
+            `Proposal saved, but the onboarding documents couldn't be attached: ${errorMessage(
+              err,
+              "unknown error"
+            )}`
+          );
+        }
+      }
+
       setSaved(true);
       router.replace(`/proposal?id=${created.id}`);
     } catch (err) {
@@ -234,6 +297,54 @@ function ProposalContent() {
           {warning} — the header below shows the placeholder, not your agency
           name. Reload before sending this to a client.
         </div>
+      )}
+
+      {!saved && documents.length > 0 && (
+        <section className="no-print onboarding-attach">
+          <label>Attach onboarding documents</label>
+          <div className="checkbox-list">
+            {documents.map((document) => (
+              <label key={document.id} className="checkbox-item">
+                <input
+                  type="checkbox"
+                  checked={selectedDocumentIds.has(document.id)}
+                  onChange={(e) =>
+                    setSelectedDocumentIds((current) => {
+                      const next = new Set(current);
+                      if (e.target.checked) next.add(document.id);
+                      else next.delete(document.id);
+                      return next;
+                    })
+                  }
+                />
+                {document.name}
+              </label>
+            ))}
+          </div>
+          <p className="field-hint">
+            Filled in from this proposal and frozen when you save. Editing a
+            template later won't change the copy this client gets.
+          </p>
+        </section>
+      )}
+
+      {saved && attached.length > 0 && (
+        <section className="no-print onboarding-attach">
+          <label>Onboarding documents</label>
+          <ul className="proposal-list">
+            {attached.map((document) => (
+              <li key={document.id}>
+                <Link
+                  href={`/onboarding/document/${document.id}`}
+                  className="proposal-list-item"
+                >
+                  <div className="proposal-list-client">{document.name}</div>
+                  <div className="proposal-list-date">View &rarr;</div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       <ProposalDocument

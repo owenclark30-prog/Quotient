@@ -12,6 +12,25 @@ type Proposal = Awaited<ReturnType<typeof getProposals>>[number];
 
 const RECENT_LIMIT = 3;
 
+/* The app's areas. A new one is an entry here; the grid reflows on its own. */
+const SECTIONS = [
+  {
+    href: "/proposals/new",
+    title: "Proposals",
+    description: "Price a client against a tier and send them a proposal.",
+  },
+  {
+    href: "/onboarding/documents",
+    title: "Onboarding",
+    description: "Templates you attach to a proposal, filled in automatically.",
+  },
+  {
+    href: "/rate-card",
+    title: "Rate card",
+    description: "Your services, the tiers they group into, and what they cost.",
+  },
+];
+
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("en-GB", {
     day: "numeric",
@@ -71,6 +90,15 @@ function Home() {
           New proposal
         </Link>
       </section>
+
+      <div className="home-grid">
+        {SECTIONS.map((section) => (
+          <Link key={section.href} href={section.href} className="home-card">
+            <span className="home-card-title">{section.title}</span>
+            <span className="home-card-description">{section.description}</span>
+          </Link>
+        ))}
+      </div>
 
       {error && <div className="empty-state error-state">{error}</div>}
 
