@@ -55,7 +55,8 @@ function ProposalsList() {
 
       {!loading && !error && proposals.length === 0 && (
         <div className="empty-state">
-          No proposals saved yet. Generate one from the calculator.
+          No proposals saved yet.{" "}
+          <Link href="/proposals/new">Generate one from the calculator.</Link>
         </div>
       )}
 

@@ -6,10 +6,27 @@ import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
 
+/* `isActive` is explicit per link rather than a shared prefix test: /proposals
+ * is a prefix of /proposals/new, so startsWith would light up both links at
+ * once on the calculator. */
 const NAV_LINKS = [
-  { href: "/", label: "Proposals", match: ["/", "/proposal"] },
-  { href: "/proposals", label: "Past proposals", match: ["/proposals"] },
-  { href: "/rate-card", label: "Rate card", match: ["/rate-card"] },
+  {
+    href: "/proposals/new",
+    label: "Proposals",
+    // A generated proposal belongs to this flow, not to the saved list.
+    isActive: (path: string) =>
+      path === "/proposals/new" || path === "/proposal",
+  },
+  {
+    href: "/proposals",
+    label: "Past proposals",
+    isActive: (path: string) => path === "/proposals",
+  },
+  {
+    href: "/rate-card",
+    label: "Rate card",
+    isActive: (path: string) => path === "/rate-card",
+  },
 ];
 
 export function AppNav() {
@@ -31,22 +48,17 @@ export function AppNav() {
         </Link>
 
         <nav className="app-nav-links">
-          {NAV_LINKS.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/" || pathname === "/proposal"
-                : pathname.startsWith(link.href);
-
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`app-nav-link${active ? " active" : ""}`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={`app-nav-link${
+                link.isActive(pathname) ? " active" : ""
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         <div className="app-nav-account">

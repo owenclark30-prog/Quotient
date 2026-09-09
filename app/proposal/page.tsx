@@ -158,7 +158,7 @@ function ProposalContent() {
       <main>
         <div className="empty-state">
           No proposal selected.{" "}
-          <Link href="/">Go back and choose a tier.</Link>
+          <Link href="/proposals/new">Go back and choose a tier.</Link>
         </div>
       </main>
     );
@@ -191,7 +191,7 @@ function ProposalContent() {
   return (
     <main>
       <div className="proposal-actions no-print">
-        <Link href={saved ? "/proposals" : "/"}>
+        <Link href={saved ? "/proposals" : "/proposals/new"}>
           &larr; {saved ? "Back to proposals" : "Back to calculator"}
         </Link>
         <div className="proposal-action-buttons">

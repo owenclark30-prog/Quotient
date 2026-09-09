@@ -241,6 +241,45 @@ input[type="text"] {
   background: var(--bg);
 }
 
+/* Home */
+
+.home-grid {
+  display: grid;
+  /* auto-fill, so a fourth and fifth destination need no layout change. The
+     200px floor fits three across the 672px content column and drops to two,
+     then one, as the viewport narrows. */
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.12s ease;
+}
+
+.home-card:hover {
+  border-color: var(--border-strong);
+}
+
+.home-card-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.home-card-description {
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

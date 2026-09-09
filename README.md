@@ -114,17 +114,29 @@ risky change before it reaches production.
 ## Routes
 
 - `/login` — email/password sign in and sign up (the only public route)
-- `/` — calculator: client name, industry, tier, live pricing
-- `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
-- `/settings` — agency name shown on proposals
+- `/` — home: the entry point into everything below
+- `/proposals/new` — calculator: client name, industry, tier, live pricing
+- `/proposals` — list of saved proposals
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
-- `/proposals` — list of saved proposals
+- `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
+- `/settings` — agency name shown on proposals
+
+`/` is an in-app home, not a marketing page — it sits behind `RequireAuth` like
+everything else, because every card on it points at a signed-in route. A new
+feature is added by appending one entry to `DESTINATIONS` in `app/page.tsx`;
+the grid is `auto-fill`, so it reflows on its own and needs no layout change.
 
 Every signed-in route renders `AppNav` (`app/components/AppNav.tsx`) from the
 root layout: branding, the three nav links, and an account menu holding agency
 settings and sign out. It returns `null` when there's no session, so `/login`
-has no chrome, and it's hidden in print.
+has no chrome, and it's hidden in print. The brand is the link home; there's no
+separate "Home" nav item.
+
+Each nav link carries **its own `isActive` predicate** rather than sharing a
+prefix test. This matters: `/proposals` is a prefix of `/proposals/new`, so a
+`startsWith` check lights up both "Proposals" and "Past proposals" at the same
+time on the calculator. Any nested route added later has the same trap.
 
 ## Theme
 
