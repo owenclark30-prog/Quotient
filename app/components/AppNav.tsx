@@ -27,7 +27,11 @@ const NAV: NavEntry[] = [
     kind: "menu",
     id: "onboarding",
     label: "Onboarding",
-    items: [{ href: "/onboarding/documents", label: "Documents" }],
+    items: [
+      { href: "/onboarding/clients", label: "Client onboarding" },
+      { href: "/onboarding/documents", label: "Documents" },
+      { href: "/onboarding/processes", label: "Processes" },
+    ],
   },
   { kind: "link", id: "rate-card", label: "Rate card", href: "/rate-card" },
 ];
@@ -36,7 +40,8 @@ function isEntryActive(entry: NavEntry, pathname: string) {
   if (entry.kind === "link") return pathname === entry.href;
   // A generated document belongs to the proposals group.
   if (entry.id === "proposals" && pathname === "/proposal") return true;
-  if (entry.id === "onboarding" && pathname.startsWith("/onboarding/document/"))
+  // A frozen document and a client's tracking page both belong to onboarding.
+  if (entry.id === "onboarding" && pathname.startsWith("/onboarding/"))
     return true;
   return entry.items.some((item) => pathname === item.href);
 }

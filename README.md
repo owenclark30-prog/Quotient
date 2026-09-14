@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema. Migrations `0001`–`0014` have already been applied to the
+3. Apply the schema. Migrations `0001`–`0015` have already been applied to the
    live project — this step is only needed when setting up a fresh Supabase
    project. `seed.sql` is optional and seeds one named account; new users are
    meant to start with an empty rate card and build their own.
@@ -58,6 +58,8 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `tier_onboarding_documents` — join table: which documents a tier pre-selects on a proposal. Composite FKs like `tier_services`
 - `onboarding_runs` — one client's onboarding. `client_name`/`tier_name` are snapshots; `proposal_id`/`tier_id` are soft links
 - `onboarding_run_documents` — the document **as the client received it**, placeholders already filled. Nothing reads a template through this
+- `onboarding_stages` — the process for a tier: title, notes, `day_offset` (relative to kickoff), `position`. Cascades with the tier
+- `onboarding_run_steps` — one client's frozen checklist with `completed_at`. `stage_id` is provenance and what re-sync matches on; nothing reads through it
 - `settings` — one row per user (`user_id` PK): the agency name, logo, contact email and website that appear on their proposals. Everything but the name is optional and stored as NULL when blank, so "not set" is one value rather than two
 
 ### No logo is a finished state, not a missing one
@@ -72,6 +74,33 @@ client will see it, rather than a grey "missing image" box.
 Adding a logo later changes nothing else: the name drops back to its smaller
 size and the logo sits above it. Proposals already sent keep the header they
 were sent with, logo or not.
+
+### When a client's onboarding starts
+
+A run is created automatically when a proposal is saved **and there is anything
+to put in it** — ticked documents, or a process on that tier. Documents alone
+would mean defining a process and getting no checklist.
+
+Quote time, not signature time, is deliberate: the kickoff checklist starter
+opens with `[ ] Proposal signed and returned`, so the process genuinely begins
+before they sign. For the gaps, a saved proposal with no run shows **Start
+onboarding** (same freeze, nothing different happens), and a run can be deleted
+for quotes that died. Manual runs with no proposal are possible in the schema
+(`proposal_id` is nullable) but no UI creates one yet.
+
+### Re-sync: what it will and won't touch
+
+| Situation | Effect |
+|---|---|
+| Stage still in the template | Title/notes/day/position updated, `completed_at` **kept** |
+| Stage added since | Inserted, unticked |
+| Stage removed, step **ticked** | **Kept** — it records work that happened |
+| Stage removed, step unticked | Removed |
+
+**A ticked step is never deleted by a re-sync.** That rule is what makes the
+button safe to press, and it is stated on the page itself. Verified end to end:
+ticking a step, deleting its stage from the template, then re-syncing leaves the
+step in place, while an unticked orphan goes.
 
 ### Onboarding: authoring vs runtime
 
@@ -225,6 +254,9 @@ risky change before it reaches production.
 - `/proposal?client=&tier=&industry=` — freshly generated proposal, savable
 - `/proposal?id=` — a saved proposal
 - `/rate-card` — builder: create services, group them into tiers, set fees, manage industries
+- `/onboarding/processes` — per-tier stage builder
+- `/onboarding/clients` — everyone currently onboarding, with progress
+- `/onboarding/clients/[id]` — one client's checklist, documents, re-sync
 - `/onboarding/documents` — template builder: write documents, attach them to tiers
 - `/onboarding/document/[id]` — one frozen document as a client received it, printable
 - `/settings` — agency identity: name, logo, contact email, website

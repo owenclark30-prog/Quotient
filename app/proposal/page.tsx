@@ -9,6 +9,7 @@ import { getTierById, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRule } from "@/lib/data/pricing-rules";
 import { createProposal, getProposalById } from "@/lib/data/proposals";
 import {
+  countStagesForTier,
   createOnboardingRun,
   getOnboardingDocuments,
   getRunDocuments,
@@ -71,6 +72,9 @@ function ProposalContent() {
   const [attached, setAttached] = useState<
     { id: string; name: string }[]
   >([]);
+  const [tierStageCount, setTierStageCount] = useState(0);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [startingOnboarding, setStartingOnboarding] = useState(false);
 
   useEffect(() => {
     if (!hasValidParams) {
@@ -104,8 +108,12 @@ function ProposalContent() {
           setIndustryName(proposal.industry_name);
 
           const run = await getRunForProposal(proposal.id);
+          setRunId(run?.id ?? null);
           // Frozen at save time; the live templates are never consulted here.
           setAttached(run ? await getRunDocuments(run.id) : []);
+          if (proposal.tier_id) {
+            setTierStageCount(await countStagesForTier(proposal.tier_id));
+          }
         } else if (clientParam && tierParam) {
           const [tierData, tierServiceRows, pricingRule, industryData, agency] =
             await Promise.all([
@@ -116,10 +124,12 @@ function ProposalContent() {
               getAgencyIdentityOrDefault(),
             ]);
 
-          const [documentsData, links] = await Promise.all([
+          const [documentsData, links, stageCount] = await Promise.all([
             getOnboardingDocuments(),
             getTierDocumentLinks(),
+            countStagesForTier(tierParam),
           ]);
+          setTierStageCount(stageCount);
           setDocuments(documentsData);
           setSelectedDocumentIds(
             new Set(
@@ -194,7 +204,10 @@ function ProposalContent() {
       const chosen = documents.filter((document) =>
         selectedDocumentIds.has(document.id)
       );
-      if (chosen.length > 0) {
+      // Documents OR a process — either is something to onboard with. Without
+      // this, defining a process but ticking no documents would silently give
+      // the client no checklist.
+      if (chosen.length > 0 || tierStageCount > 0) {
         try {
           await createOnboardingRun({
             proposalId: created.id,
@@ -228,6 +241,36 @@ function ProposalContent() {
       setError(errorMessage(err, "Failed to save proposal"));
     } finally {
       setSaving(false);
+    }
+  }
+
+  /** For a proposal saved before its process or documents existed. Same
+   * freeze as the automatic path — nothing different happens here. */
+  async function handleStartOnboarding() {
+    if (!proposalId || !clientName || agencyName == null || !pricing || !tierName)
+      return;
+    setStartingOnboarding(true);
+    setError(null);
+    try {
+      const run = await createOnboardingRun({
+        proposalId,
+        tierId,
+        values: {
+          client_name: clientName,
+          agency_name: agencyName,
+          tier_name: tierName,
+          services,
+          pricing,
+        },
+        documents: documents.filter((document) =>
+          selectedDocumentIds.has(document.id)
+        ),
+      });
+      router.push(`/onboarding/clients/${run.id}`);
+    } catch (err) {
+      setError(errorMessage(err, "Couldn't start onboarding."));
+    } finally {
+      setStartingOnboarding(false);
     }
   }
 
@@ -328,6 +371,34 @@ function ProposalContent() {
             Filled in from this proposal and frozen when you save. Editing a
             template later won't change the copy this client gets.
           </p>
+        </section>
+      )}
+
+      {saved && runId && (
+        <section className="no-print onboarding-attach">
+          <label>Onboarding</label>
+          <Link href={`/onboarding/clients/${runId}`} className="text-link">
+            Track this client&rsquo;s onboarding &rarr;
+          </Link>
+        </section>
+      )}
+
+      {saved && !runId && tierStageCount > 0 && (
+        <section className="no-print onboarding-attach">
+          <label>Onboarding</label>
+          <p className="field-hint">
+            This proposal was saved before you had a process for{" "}
+            {tierName}. Start onboarding to copy it in as this
+            client&rsquo;s checklist.
+          </p>
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={handleStartOnboarding}
+            disabled={startingOnboarding}
+          >
+            {startingOnboarding ? "Starting…" : "Start onboarding"}
+          </button>
         </section>
       )}
 

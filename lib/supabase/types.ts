@@ -336,6 +336,81 @@ export type Database = {
           },
         ];
       };
+      onboarding_stages: {
+        Row: {
+          id: string;
+          user_id: string;
+          tier_id: string;
+          position: number;
+          day_offset: number | null;
+          title: string;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          tier_id: string;
+          position?: number;
+          day_offset?: number | null;
+          title: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          tier_id?: string;
+          position?: number;
+          day_offset?: number | null;
+          title?: string;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      onboarding_run_steps: {
+        Row: {
+          id: string;
+          user_id: string;
+          run_id: string;
+          stage_id: string | null;
+          position: number;
+          day_offset: number | null;
+          title: string;
+          notes: string | null;
+          completed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          run_id: string;
+          stage_id?: string | null;
+          position?: number;
+          day_offset?: number | null;
+          title: string;
+          notes?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          run_id?: string;
+          stage_id?: string | null;
+          position?: number;
+          day_offset?: number | null;
+          title?: string;
+          notes?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       settings: {
         Row: {
           user_id: string;
@@ -400,3 +475,8 @@ export type OnboardingRun =
   Database["public"]["Tables"]["onboarding_runs"]["Row"];
 export type OnboardingRunDocument =
   Database["public"]["Tables"]["onboarding_run_documents"]["Row"];
+
+export type OnboardingStage =
+  Database["public"]["Tables"]["onboarding_stages"]["Row"];
+export type OnboardingRunStep =
+  Database["public"]["Tables"]["onboarding_run_steps"]["Row"];
