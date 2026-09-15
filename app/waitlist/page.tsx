@@ -50,8 +50,8 @@ export default function WaitlistPage() {
 
       <div className={styles.lines}>
         <p className={styles.feature}>
-          Price it. Propose it. Onboard it. —{" "}
-          <span className={styles.live}>live today.</span>
+          Built and being tested right now. Full access opens to the first 25
+          members.
         </p>
         <p className={styles.secondary}>
           More coming: pipeline tracking, prospecting tools, and the rest of the
