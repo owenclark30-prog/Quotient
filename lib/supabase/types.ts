@@ -411,6 +411,27 @@ export type Database = {
         };
         Relationships: [];
       };
+      waitlist_emails: {
+        Row: {
+          id: string;
+          email: string;
+          name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       settings: {
         Row: {
           user_id: string;

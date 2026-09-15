@@ -1,0 +1,172 @@
+/* Scoped to the waitlist page. A CSS module rather than globals.css, so no
+   existing selector anywhere in the app can be affected by this file.
+   The palette tokens and the grid backdrop come from :root and body::before,
+   which are already global. */
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 72px 24px 96px;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.glow {
+  position: relative;
+}
+
+/* The same soft pool of accent the signed-in home uses behind its wordmark.
+   Decorative, behind the text, so it carries no contrast requirement. */
+.glow::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, 110%);
+  aspect-ratio: 2 / 1;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 210, 190, 0.13),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.glow > * {
+  position: relative;
+  z-index: 1;
+}
+
+.mark {
+  font-size: clamp(2.75rem, 10vw, 4.25rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--accent-bright);
+  margin: 0 0 28px;
+}
+
+.headline {
+  font-size: clamp(1.35rem, 4.5vw, 1.9rem);
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  margin: 0 0 18px;
+  color: var(--text);
+}
+
+.subhead {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  margin: 0 auto 40px;
+  max-width: 34rem;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.feature {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.live {
+  color: var(--accent-bright);
+}
+
+.secondary {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+  margin: 0 auto;
+  max-width: 32rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 24px;
+  text-align: left;
+}
+
+.offer {
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text);
+  margin: 0 0 18px;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Two class selectors: the global `input[type="text"]` rule is (0,1,1) and
+   would otherwise win over a single-class module selector. */
+.form .field {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  font-family: inherit;
+}
+
+.form .field::placeholder {
+  color: var(--text-muted);
+}
+
+.submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.status {
+  margin: 16px 0 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.ok {
+  color: var(--accent-bright);
+}
+
+.bad {
+  color: var(--danger);
+}
+
+.footer {
+  margin-top: 40px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Visually hidden, still read aloud. The fields are placeholder-labelled for
+   sighted users; a placeholder is not a label for a screen reader. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

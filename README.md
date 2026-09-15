@@ -22,7 +22,7 @@ Next.js (App Router, TypeScript) + Supabase.
    cp .env.local.example .env.local
    ```
 
-3. Apply the schema. Migrations `0001`–`0015` have already been applied to the
+3. Apply the schema. Migrations `0001`–`0016` have already been applied to the
    live project — this step is only needed when setting up a fresh Supabase
    project. `seed.sql` is optional and seeds one named account; new users are
    meant to start with an empty rate card and build their own.
@@ -60,6 +60,7 @@ All of the rate card is per-user: a user only ever sees their own offer.
 - `onboarding_run_documents` — the document **as the client received it**, placeholders already filled. Nothing reads a template through this
 - `onboarding_stages` — the process for a tier: title, notes, `day_offset` (relative to kickoff), `position`. Cascades with the tier
 - `onboarding_run_steps` — one client's frozen checklist with `completed_at`. `stage_id` is provenance and what re-sync matches on; nothing reads through it
+- `waitlist_emails` — pre-launch signups. The **only** table `anon` can touch: INSERT and nothing else, with no select policy, so the list cannot be read back with the publishable key. Read it in the Supabase table editor
 - `settings` — one row per user (`user_id` PK): the agency name, logo, contact email and website that appear on their proposals. Everything but the name is optional and stored as NULL when blank, so "not set" is one value rather than two
 
 ### No logo is a finished state, not a missing one
@@ -231,6 +232,40 @@ Query functions live in `lib/data/*.ts` (`getServices`, `getTiers`,
 `getAgencyIdentityOrDefault`, `updateAgencyIdentity`). Writes stamp `user_id` from the
 session so call sites don't have to. The Supabase client is in
 `lib/supabase/client.ts`, typed against `lib/supabase/types.ts`.
+
+## Pre-launch gate
+
+`middleware.ts` seals the app behind a public waitlist page. It is middleware
+rather than a change inside the app, so every existing page, `RequireAuth` and
+`AppNav` are untouched — with the gate down it returns `next()` before anything
+else runs.
+
+| `LAUNCH_MODE` | Result |
+|---|---|
+| `waitlist` | `/` serves the waitlist; every other route redirects to `/` |
+| `live`, unset, anything else | The app, exactly as without the middleware |
+
+**Fail-open on purpose.** Only the exact string `waitlist` raises the gate, so
+a lost or mistyped env var gives you the working product rather than hiding it
+behind a signup form. Set `LAUNCH_MODE=waitlist` in Netlify to raise it; delete
+the variable to drop it. It is a plain server env var, not `NEXT_PUBLIC_*`, so
+it is never inlined into the client bundle and cannot be flipped from a browser.
+
+`/` is a **rewrite**, not a redirect, so the URL stays clean. There is no bypass
+— while the gate is up, you can't reach the app either.
+
+The page styles itself with `app/waitlist/waitlist.module.css`, a CSS module
+rather than additions to `globals.css`, so no existing selector can be affected.
+The palette and grid backdrop come free from `:root` and `body::before`.
+
+### Waitlist signups
+
+A public insert endpoint is inherently spammable; that's the cost of having a
+form at all. What limits it: `unique (lower(email))`, length and shape CHECKs,
+and INSERT-only grants. `joinWaitlist` deliberately does **not** chain
+`.select()` — asking for the row back would fail against an insert-only grant —
+and treats a duplicate (`23505`) as success, so the form can't be used to find
+out who is already on the list.
 
 ## Branching and deploys
 
