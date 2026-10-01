@@ -2,8 +2,15 @@ import type {
   ProposalPricing,
   ProposalServiceSnapshot,
 } from "@/lib/supabase/types";
+import type { ExpectedReturn, FieldUnit } from "@/lib/pricing-snapshot";
 import { formatGBP } from "@/lib/format";
 import { emailHref, websiteHref, websiteLabel } from "@/lib/agency";
+
+function formatInput(value: number, unit: FieldUnit) {
+  if (unit === "money") return formatGBP(value);
+  if (unit === "percent") return `${value}%`;
+  return value.toLocaleString("en-GB");
+}
 
 export function ProposalDocument({
   clientName,
@@ -17,6 +24,7 @@ export function ProposalDocument({
   agencyEmail,
   agencyWebsite,
   generatedDate,
+  expectedReturn = null,
 }: {
   clientName: string;
   industryName: string | null;
@@ -29,6 +37,14 @@ export function ProposalDocument({
   agencyEmail: string | null;
   agencyWebsite: string | null;
   generatedDate: string;
+  /** Null for a proposal priced straight from the rate card — the section is
+   * left out entirely rather than rendered empty.
+   *
+   * This type carries only the client's own figures and the conservative value.
+   * The agency's hourly cost, target margin, value range, floor and verdict have
+   * no field to arrive in, which is what keeps them off a document a client
+   * reads. */
+  expectedReturn?: ExpectedReturn | null;
 }) {
   const hasFoundingRate =
     pricing.founding_setup_fee != null || pricing.founding_monthly_fee != null;
@@ -140,6 +156,72 @@ export function ProposalDocument({
           </p>
         )}
       </section>
+
+      {expectedReturn && (
+        <section className="proposal-block">
+          <span className="proposal-label">Expected return</span>
+
+          <p className="proposal-return-intro">
+            Worked out from the figures you gave us.
+          </p>
+
+          {expectedReturn.levers.map((lever) => (
+            <div key={lever.label} className="proposal-return-lever">
+              <h3 className="proposal-return-lever-name">{lever.label}</h3>
+              <table className="proposal-return-inputs">
+                <tbody>
+                  {lever.lines.map((line) => (
+                    <tr key={line.label}>
+                      <td>{line.label}</td>
+                      <td>{formatInput(line.value, line.unit)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ))}
+
+          <table className="proposal-pricing proposal-return-summary">
+            <tbody>
+              <tr>
+                <td>Estimated value to you</td>
+                {/* Whole pounds: pence on an estimate this soft reads as false
+                    precision, and £2,872.8 reads as a typo. */}
+                <td>
+                  {formatGBP(Math.round(expectedReturn.conservativeMonthly))}/mo
+                </td>
+              </tr>
+              <tr>
+                <td>Your investment</td>
+                <td>
+                  {formatGBP(expectedReturn.setupFee)} setup +{" "}
+                  {formatGBP(expectedReturn.monthlyFee)}/mo
+                </td>
+              </tr>
+              {expectedReturn.paybackMonths != null && (
+                <tr>
+                  <td>Setup paid back in</td>
+                  <td>
+                    {expectedReturn.paybackMonths < 1
+                      ? "under a month"
+                      : `${expectedReturn.paybackMonths.toFixed(1)} months`}
+                  </td>
+                </tr>
+              )}
+              {expectedReturn.roi != null && (
+                <tr>
+                  <td>Return on the monthly fee</td>
+                  <td>{expectedReturn.roi.toFixed(1)}×</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+
+          <p className="proposal-pricing-note">
+            Estimates based on the figures provided.
+          </p>
+        </section>
+      )}
 
       <footer className="proposal-footer">
         <div>

@@ -16,6 +16,12 @@ import {
   getRunForProposal,
   getTierDocumentLinks,
 } from "@/lib/data/onboarding";
+import { clearPricing, readPricing } from "@/lib/pricing-handoff";
+import {
+  expectedReturnFromSnapshot,
+  parsePricingSnapshot,
+  type PricingSnapshot,
+} from "@/lib/pricing-snapshot";
 import { errorMessage } from "@/lib/errors";
 import type {
   OnboardingDocument,
@@ -40,6 +46,7 @@ function ProposalContent() {
   const clientParam = searchParams.get("client");
   const tierParam = searchParams.get("tier");
   const industryParam = searchParams.get("industry");
+  const pricingParam = searchParams.get("pricing");
 
   const hasValidParams = Boolean(proposalId || (clientParam && tierParam));
 
@@ -58,6 +65,12 @@ function ProposalContent() {
   const [services, setServices] = useState<ProposalServiceSnapshot[]>([]);
   const [industryName, setIndustryName] = useState<string | null>(null);
   const [pricing, setPricing] = useState<ProposalPricing | null>(null);
+  /** Frozen on a saved proposal, carried from the pricing step on a fresh one.
+   * Null means this proposal was priced straight from the rate card and shows
+   * no expected return. */
+  const [pricingSnapshot, setPricingSnapshot] =
+    useState<PricingSnapshot | null>(null);
+  const [feesFromPricing, setFeesFromPricing] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +119,10 @@ function ProposalContent() {
           setServices(proposal.services);
           setPricing(proposal);
           setIndustryName(proposal.industry_name);
+          // Validated rather than trusted: it's a jsonb column, and a shape
+          // this build doesn't know renders as no section, never a wrong
+          // number. Nothing here is recalculated.
+          setPricingSnapshot(parsePricingSnapshot(proposal.pricing_inputs));
 
           const run = await getRunForProposal(proposal.id);
           setRunId(run?.id ?? null);
@@ -160,8 +177,29 @@ function ProposalContent() {
                 description: service!.description,
               }))
           );
-          setPricing(pricingRule);
           setIndustryName(industryData?.name ?? null);
+
+          // The pricing step is optional, and so is its key surviving the hop
+          // — a missing or stale one just means rate card fees and no expected
+          // return.
+          const handoff = pricingParam ? readPricing(pricingParam) : null;
+          setPricingSnapshot(handoff?.snapshot ?? null);
+          setFeesFromPricing(Boolean(handoff?.fees));
+
+          if (pricingRule && handoff?.fees) {
+            // Fees for this one proposal. The rate card row itself is never
+            // written to. Founding rates are dropped because they belong to the
+            // rate card's own fee, not to a number set for this client.
+            setPricing({
+              setup_fee: handoff.fees.setup_fee,
+              monthly_fee: handoff.fees.monthly_fee,
+              founding_setup_fee: null,
+              founding_monthly_fee: null,
+              founding_duration_months: null,
+            });
+          } else {
+            setPricing(pricingRule);
+          }
         }
       } catch (err) {
         setError(
@@ -173,7 +211,14 @@ function ProposalContent() {
     }
 
     load();
-  }, [hasValidParams, proposalId, clientParam, tierParam, industryParam]);
+  }, [
+    hasValidParams,
+    proposalId,
+    clientParam,
+    tierParam,
+    industryParam,
+    pricingParam,
+  ]);
 
   async function handleSave() {
     if (!clientName || !tierId || agencyName == null || !pricing || !tierName)
@@ -199,7 +244,14 @@ function ProposalContent() {
         founding_setup_fee: pricing.founding_setup_fee,
         founding_monthly_fee: pricing.founding_monthly_fee,
         founding_duration_months: pricing.founding_duration_months,
+        // Frozen alongside the fees it justifies. A saved proposal reads these
+        // numbers back and never recalculates them.
+        pricing_inputs: pricingSnapshot,
       });
+
+      // The snapshot is on the row now, so the handoff key has done its job —
+      // leaving it would let the same pricing attach to a second proposal.
+      if (pricingParam) clearPricing(pricingParam);
 
       const chosen = documents.filter((document) =>
         selectedDocumentIds.has(document.id)
@@ -421,6 +473,16 @@ function ProposalContent() {
         </section>
       )}
 
+      {!saved && feesFromPricing && (
+        <section className="no-print onboarding-attach">
+          <label>Fees</label>
+          <p className="field-hint">
+            These fees came from the pricing step and apply to this proposal
+            only. Your rate card is unchanged.
+          </p>
+        </section>
+      )}
+
       <ProposalDocument
         clientName={clientName}
         industryName={industryName}
@@ -433,6 +495,9 @@ function ProposalContent() {
         agencyEmail={agencyEmail}
         agencyWebsite={agencyWebsite}
         generatedDate={formatDate(documentDate)}
+        expectedReturn={
+          pricingSnapshot ? expectedReturnFromSnapshot(pricingSnapshot) : null
+        }
       />
     </main>
   );
