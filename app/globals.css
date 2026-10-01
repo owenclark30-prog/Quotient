@@ -1485,6 +1485,12 @@ input[type="password"] {
 
 .price-results {
   margin-top: 20px;
+  /* Room below the fee boxes, which are the last fields on a long page.
+     Focusing an input the browser can't fully see makes it scroll down to
+     reveal it, and blurring restores the old offset — so without this, a click
+     that goes straight from the fee box to "Generate Proposal" can land 60-odd
+     pixels off. The space keeps the boxes clear of the fold. */
+  padding-bottom: 112px;
 }
 
 .price-headline {
