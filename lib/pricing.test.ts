@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  appliedReturn,
   calculatePricing,
   defaultHoursForLevel,
   deliveryFloor,
   PRICING_DEFAULTS,
+  suggestLevers,
   type DeliveryCost,
   type PricingInputs,
 } from "./pricing.ts";
@@ -321,6 +323,53 @@ describe("payback", () => {
   it("never returns Infinity", () => {
     const result = calculatePricing(EXAMPLE_INPUTS, EXAMPLE_COST);
     assert.ok(result.paybackMonths === null || Number.isFinite(result.paybackMonths));
+  });
+});
+
+describe("suggesting levers from a tier's services", () => {
+  it("picks the levers the services actually speak to", () => {
+    assert.deepEqual(
+      suggestLevers(["Missed-call text back", "Appointment reminders"]),
+      ["missed", "noshow"]
+    );
+  });
+
+  it("returns them in a fixed order, not the services' order", () => {
+    assert.deepEqual(
+      suggestLevers(["Workflow automation", "Database reactivation"]),
+      ["react", "time"]
+    );
+  });
+
+  it("ignores case", () => {
+    assert.deepEqual(suggestLevers(["DORMANT LIST CAMPAIGN"]), ["react"]);
+  });
+
+  it("suggests nothing rather than guessing", () => {
+    assert.deepEqual(suggestLevers(["Brand photography"]), []);
+    assert.deepEqual(suggestLevers([]), []);
+  });
+});
+
+describe("the return on the fee actually charged", () => {
+  it("measures against that fee, not the recommended one", () => {
+    // Vc 2872.80 against a 297 fee, 1250 setup.
+    const { roi, paybackMonths } = appliedReturn(2872.8, 1250, 297);
+    assert.equal(roi, 9.67);
+    assert.equal(paybackMonths, 0.49);
+  });
+
+  it("reports no payback when the fee swallows the value", () => {
+    const { roi, paybackMonths } = appliedReturn(400, 1000, 400);
+    assert.equal(roi, 1);
+    assert.equal(paybackMonths, null);
+  });
+
+  it("reports no ROI on a free month rather than dividing by zero", () => {
+    assert.deepEqual(appliedReturn(2872.8, 1250, 0), {
+      roi: null,
+      paybackMonths: 0.44,
+    });
   });
 });
 

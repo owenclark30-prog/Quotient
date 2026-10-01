@@ -58,6 +58,16 @@ export async function updateTier(
   if (error) throw error;
 }
 
+/** Delivery hours for one tier, used only to work out the agency's own floor.
+ * NULL clears the override and puts the tier back on the by-level defaults. */
+export async function updateTierHours(
+  id: string,
+  hours: { setup_hours: number | null; support_hours: number | null }
+) {
+  const { error } = await supabase.from("tiers").update(hours).eq("id", id);
+  if (error) throw error;
+}
+
 /** Cascades to that tier's tier_services and pricing_rules. Saved proposals
  * are unaffected — they hold their own snapshot. */
 export async function deleteTier(id: string) {

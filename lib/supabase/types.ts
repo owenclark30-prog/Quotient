@@ -1,3 +1,5 @@
+import type { PricingSnapshot } from "@/lib/pricing-snapshot";
+
 /** What a proposal freezes about each included service at save time. */
 export type ProposalServiceSnapshot = {
   name: string;
@@ -35,6 +37,11 @@ export type Database = {
           name: string;
           level: number;
           description: string | null;
+          /** What delivering this tier costs in hours. NULL means never set,
+           * which is different from a deliberate 0 — the app falls back to the
+           * by-level defaults in lib/pricing.ts. */
+          setup_hours: number | null;
+          support_hours: number | null;
         };
         Insert: {
           id?: string;
@@ -42,6 +49,8 @@ export type Database = {
           name: string;
           level: number;
           description?: string | null;
+          setup_hours?: number | null;
+          support_hours?: number | null;
         };
         Update: {
           id?: string;
@@ -49,6 +58,39 @@ export type Database = {
           name?: string;
           level?: number;
           description?: string | null;
+          setup_hours?: number | null;
+          support_hours?: number | null;
+        };
+        Relationships: [];
+      };
+      agency_cost_settings: {
+        Row: {
+          user_id: string;
+          hourly_cost: number;
+          /** Fraction, not a percentage: used directly as (1 - g). */
+          target_margin: number;
+          tool_cost_monthly: number;
+          conservatism_factor: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          hourly_cost?: number;
+          target_margin?: number;
+          tool_cost_monthly?: number;
+          conservatism_factor?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          hourly_cost?: number;
+          target_margin?: number;
+          tool_cost_monthly?: number;
+          conservatism_factor?: number;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };
@@ -174,6 +216,11 @@ export type Database = {
           founding_setup_fee: number | null;
           founding_monthly_fee: number | null;
           founding_duration_months: number | null;
+          /** The frozen "Price this client" snapshot, or NULL for a proposal
+           * priced straight from the rate card. Typed `unknown` on the way out
+           * on purpose: it's a jsonb column, so `parsePricingSnapshot` is the
+           * only way in. */
+          pricing_inputs: unknown;
           created_at: string;
         };
         Insert: {
@@ -195,6 +242,7 @@ export type Database = {
           founding_setup_fee?: number | null;
           founding_monthly_fee?: number | null;
           founding_duration_months?: number | null;
+          pricing_inputs?: PricingSnapshot | null;
           created_at?: string;
         };
         Update: {
@@ -216,6 +264,7 @@ export type Database = {
           founding_setup_fee?: number | null;
           founding_monthly_fee?: number | null;
           founding_duration_months?: number | null;
+          pricing_inputs?: PricingSnapshot | null;
           created_at?: string;
         };
         Relationships: [

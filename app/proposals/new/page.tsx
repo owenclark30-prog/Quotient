@@ -6,12 +6,18 @@ import Link from "next/link";
 import { getIndustries } from "@/lib/data/industries";
 import { getTiers, getTierWithServices } from "@/lib/data/tiers";
 import { getPricingRules } from "@/lib/data/pricing-rules";
+import {
+  getCostSettingsOrDefault,
+  type AgencyCostSettings,
+} from "@/lib/data/cost-settings";
+import { stashPricing, type PricingHandoff } from "@/lib/pricing-handoff";
 import { errorMessage } from "@/lib/errors";
 import type { Industry, PricingRule, Service, Tier } from "@/lib/supabase/types";
 import { ClientNameInput } from "../../components/ClientNameInput";
 import { IndustrySelect } from "../../components/IndustrySelect";
 import { TierPicker } from "../../components/TierPicker";
 import { PricingSummary } from "../../components/PricingSummary";
+import { PriceThisClient } from "../../components/PriceThisClient";
 import { RequireAuth } from "../../components/RequireAuth";
 
 export default function HomePage() {
@@ -38,16 +44,26 @@ function Home() {
     null
   );
   const [selectedTierId, setSelectedTierId] = useState<string | null>(null);
+  const [costSettings, setCostSettings] = useState<AgencyCostSettings | null>(
+    null
+  );
+  const [pricing, setPricing] = useState<PricingHandoff | null>(null);
 
   useEffect(() => {
     async function load() {
       try {
-        const [industriesData, tiersData, pricingRulesData] =
-          await Promise.all([getIndustries(), getTiers(), getPricingRules()]);
+        const [industriesData, tiersData, pricingRulesData, costResult] =
+          await Promise.all([
+            getIndustries(),
+            getTiers(),
+            getPricingRules(),
+            getCostSettingsOrDefault(),
+          ]);
 
         setIndustries(industriesData);
         setTiers(tiersData);
         setPricingRules(pricingRulesData);
+        setCostSettings(costResult.settings);
 
         const servicesByTier = await Promise.all(
           tiersData.map(async (tier) => {
@@ -89,6 +105,11 @@ function Home() {
     );
   }, [selectedTierId, selectedIndustryId, pricingRules]);
 
+  const selectedTier = useMemo(
+    () => tiers.find((tier) => tier.id === selectedTierId) ?? null,
+    [tiers, selectedTierId]
+  );
+
   const canGenerateProposal =
     clientName.trim().length > 0 && selectedTierId && selectedRule;
 
@@ -100,6 +121,14 @@ function Home() {
       tier: selectedTierId,
     });
     if (selectedIndustryId) params.set("industry", selectedIndustryId);
+
+    // The snapshot travels by key, not in the URL. If storage is unavailable
+    // the proposal still generates — from the rate card, with no expected
+    // return — rather than failing on an optional aid.
+    if (pricing) {
+      const key = stashPricing(pricing);
+      if (key) params.set("pricing", key);
+    }
 
     router.push(`/proposal?${params.toString()}`);
   }
@@ -155,6 +184,22 @@ function Home() {
           />
 
           <PricingSummary rule={selectedRule} />
+
+          {selectedTier && selectedRule && costSettings && (
+            /* Keyed on the tier: picking a different one re-reads its services
+               and hours from scratch rather than keeping the last tier's
+               ticked levers. */
+            <PriceThisClient
+              key={selectedTier.id}
+              tier={selectedTier}
+              serviceNames={(tierServices[selectedTier.id] ?? []).map(
+                (service) => service.name
+              )}
+              rule={selectedRule}
+              costSettings={costSettings}
+              onChange={setPricing}
+            />
+          )}
         </>
       )}
 

@@ -173,6 +173,79 @@ export function defaultHoursForLevel(level: number) {
   };
 }
 
+/* ------------------------------------------------- picking levers for a tier */
+
+/** Words in a service name that mark it as addressing a lever. Lowercase,
+ * matched as substrings. Only ever used to pre-tick boxes the agency can
+ * untick, so a loose match costs nothing and a missed one costs a click. */
+const LEVER_KEYWORDS: Record<LeverKey, readonly string[]> = {
+  missed: [
+    "missed call",
+    "missed-call",
+    "missed",
+    "speed to lead",
+    "instant response",
+    "instant reply",
+    "lead response",
+    "enquiry",
+    "enquiries",
+    "inbound",
+    "sms",
+    "text back",
+    "callback",
+    "call back",
+    "follow-up",
+    "follow up",
+    "qualification",
+  ],
+  noshow: [
+    "no-show",
+    "no show",
+    "noshow",
+    "reminder",
+    "confirmation",
+    "booking",
+    "appointment",
+    "rebook",
+    "re-book",
+  ],
+  react: [
+    "reactivation",
+    "reactivate",
+    "dormant",
+    "database",
+    "win-back",
+    "winback",
+    "lapsed",
+    "past client",
+    "nurture",
+  ],
+  time: [
+    "automation",
+    "automate",
+    "workflow",
+    "admin",
+    "crm",
+    "reporting",
+    "dashboard",
+    "integration",
+  ],
+};
+
+/** Which levers a tier's services plausibly move. Returns them in the fixed
+ * order the UI lists them, never a per-tier order, so the form doesn't
+ * reshuffle as services change. */
+export function suggestLevers(serviceNames: readonly string[]): LeverKey[] {
+  const haystack = serviceNames.map((name) => name.toLowerCase());
+  const order: LeverKey[] = ["missed", "noshow", "react", "time"];
+
+  return order.filter((lever) =>
+    LEVER_KEYWORDS[lever].some((keyword) =>
+      haystack.some((name) => name.includes(keyword))
+    )
+  );
+}
+
 /* -------------------------------------------------------------- the levers */
 
 function missedValue(input: MissedInputs, missing: string[]) {
@@ -257,6 +330,29 @@ export function deliveryFloor(cost: DeliveryCost) {
   return {
     monthly: round((cost.supportHours * hourly + tools) / retained),
     setup: round((cost.setupHours * hourly) / retained),
+  };
+}
+
+/* ------------------------------------------- the return on the fee charged */
+
+/** ROI and payback against the fees actually being charged.
+ *
+ * Distinct from the ROI in `PricingResult`, which is against the *recommended*
+ * monthly. The agency may keep its rate card fee or type its own, and the
+ * client's "Expected return" has to describe the deal in front of them rather
+ * than one they were never offered. */
+export function appliedReturn(
+  conservativeMonthly: number,
+  setupFee: number,
+  monthlyFee: number
+): { roi: number | null; paybackMonths: number | null } {
+  const surplus = conservativeMonthly - monthlyFee;
+
+  return {
+    roi: monthlyFee > 0 ? round2(conservativeMonthly / monthlyFee) : null,
+    // A fee at or above the value it creates never pays back, and this one is
+    // reachable: nothing stops an agency typing a fee above the estimate.
+    paybackMonths: surplus > 0 ? round2(setupFee / surplus) : null,
   };
 }
 
