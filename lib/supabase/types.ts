@@ -481,6 +481,58 @@ export type Database = {
         };
         Relationships: [];
       };
+      subscriptions: {
+        Row: {
+          user_id: string;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          /** Stripe's own status, verbatim and unconstrained — see 0018. */
+          status: string | null;
+          plan: "founder" | "standard" | null;
+          current_period_end: string | null;
+          cancel_at_period_end: boolean;
+          comped: boolean;
+          past_due_since: string | null;
+          claimed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          user_id: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: string | null;
+          plan?: "founder" | "standard" | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          comped?: boolean;
+          past_due_since?: string | null;
+          claimed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          user_id?: string;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          status?: string | null;
+          plan?: "founder" | "standard" | null;
+          current_period_end?: string | null;
+          cancel_at_period_end?: boolean;
+          comped?: boolean;
+          past_due_since?: string | null;
+          claimed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      stripe_events: {
+        Row: { id: string; type: string; received_at: string };
+        Insert: { id: string; type: string; received_at?: string };
+        Update: { id?: string; type?: string; received_at?: string };
+        Relationships: [];
+      };
       settings: {
         Row: {
           user_id: string;
@@ -507,7 +559,19 @@ export type Database = {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      /** Both are SECURITY DEFINER and granted to service_role only, so these
+       * are callable from server code holding the service key and from nowhere
+       * else. See migration 0018. */
+      claim_plan: {
+        Args: { p_user_id: string };
+        Returns: "founder" | "standard";
+      };
+      founder_slots_used: {
+        Args: { p_exclude_user?: string | null };
+        Returns: number;
+      };
+    };
     Enums: {};
     CompositeTypes: {};
   };
@@ -519,6 +583,8 @@ export type Industry = Database["public"]["Tables"]["industries"]["Row"];
 export type PricingRule = Database["public"]["Tables"]["pricing_rules"]["Row"];
 export type Proposal = Database["public"]["Tables"]["proposals"]["Row"];
 export type Settings = Database["public"]["Tables"]["settings"]["Row"];
+export type Subscription =
+  Database["public"]["Tables"]["subscriptions"]["Row"];
 
 /** The fee fields a proposal renders. Both a live `PricingRule` and a saved
  * `Proposal` (which freezes them at save time) satisfy this. */
