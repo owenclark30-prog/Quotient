@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AppNav } from "./components/AppNav";
 import { AuthProvider } from "./components/AuthProvider";
+import { SubscriptionProvider } from "./components/SubscriptionProvider";
 
 export const metadata: Metadata = {
   title: "Quotient",
@@ -17,8 +18,12 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          <AppNav />
-          {children}
+          {/* Inside AuthProvider: it needs the session before it can load a
+              subscription, and both are read by RequireAuth. */}
+          <SubscriptionProvider>
+            <AppNav />
+            {children}
+          </SubscriptionProvider>
         </AuthProvider>
       </body>
     </html>

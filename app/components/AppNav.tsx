@@ -151,6 +151,14 @@ export function AppNav() {
               >
                 Agency settings
               </Link>
+              <Link
+                href="/settings/billing"
+                className={`app-nav-menu-item${
+                  pathname === "/settings/billing" ? " current" : ""
+                }`}
+              >
+                Billing
+              </Link>
               <button
                 type="button"
                 className="app-nav-menu-item"
