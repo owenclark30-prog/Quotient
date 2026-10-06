@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { getMySubscription } from "@/lib/data/billing";
@@ -56,6 +57,10 @@ export function SubscriptionProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  /** Whose row is currently loaded. A refresh for the same user re-reads in the
+   * background; only a first load (or a different user) shows as loading, so a
+   * page polling for a webhook doesn't blank itself on every re-read. */
+  const loadedFor = useRef<string | null>(null);
 
   const refresh = useCallback(() => setReloadToken((n) => n + 1), []);
 
@@ -63,14 +68,16 @@ export function SubscriptionProvider({
     if (authLoading) return;
 
     if (!session) {
+      loadedFor.current = null;
       setSubscription(null);
       setError(null);
       setLoading(false);
       return;
     }
 
+    const userId = session.user.id;
     let cancelled = false;
-    setLoading(true);
+    if (loadedFor.current !== userId) setLoading(true);
 
     getMySubscription()
       .then((row) => {
@@ -80,15 +87,19 @@ export function SubscriptionProvider({
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        // Deliberately does not grant access on failure. A read error is not a
+        // A first load that fails gets no subscription: a read error is not a
         // subscription, and failing open here would make the paywall advisory.
-        setSubscription(null);
+        // A background re-read that fails keeps the row already showing —
+        // dropping a paying customer to "None" over a blip helps nobody.
+        if (loadedFor.current !== userId) setSubscription(null);
         setError(
           err instanceof Error ? err.message : "Couldn't check your subscription."
         );
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (cancelled) return;
+        loadedFor.current = userId;
+        setLoading(false);
       });
 
     return () => {

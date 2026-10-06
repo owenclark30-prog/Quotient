@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { openBillingPortal } from "@/lib/data/billing";
 import { FOUNDER_SLOT_LIMIT, PLAN_LABEL, PLAN_PRICE_LABEL } from "@/lib/billing";
+import { billingDisplay, checkoutReflected } from "@/lib/billing-display";
 import { errorMessage } from "@/lib/errors";
 import { RequireAuth } from "../../components/RequireAuth";
 import { useSubscription } from "../../components/SubscriptionProvider";
@@ -26,6 +27,9 @@ export default function BillingPage() {
     </RequireAuth>
   );
 }
+
+const CHECKOUT_POLL_MS = 2000;
+const MAX_CHECKOUT_POLLS = 8;
 
 function formatDate(value: string | null) {
   if (!value) return null;
@@ -73,15 +77,23 @@ function Billing() {
 
   const [opening, setOpening] = useState(false);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const [polls, setPolls] = useState(0);
 
   // The webhook and the browser race after checkout: Stripe redirects back the
-  // moment payment succeeds, which can be before the event lands. One delayed
-  // re-read turns "None" into the real subscription without a manual reload.
+  // moment payment succeeds, which can be before the event lands. Re-read every
+  // couple of seconds until the subscription shows, then stop. Bounded, so a
+  // webhook that never arrives doesn't poll forever.
+  const awaitingWebhook = justCheckedOut && !checkoutReflected(subscription);
+  const stillPolling = awaitingWebhook && polls < MAX_CHECKOUT_POLLS;
+
   useEffect(() => {
-    if (!justCheckedOut) return;
-    const timer = setTimeout(refresh, 2000);
+    if (loading || !stillPolling) return;
+    const timer = setTimeout(() => {
+      setPolls((n) => n + 1);
+      refresh();
+    }, CHECKOUT_POLL_MS);
     return () => clearTimeout(timer);
-  }, [justCheckedOut, refresh]);
+  }, [loading, stillPolling, polls, refresh]);
 
   async function handlePortal() {
     if (opening) return;
@@ -108,9 +120,11 @@ function Billing() {
 
   const comped = Boolean(subscription?.comped);
   const plan = subscription?.plan ?? null;
-  const renewal = formatDate(subscription?.current_period_end ?? null);
-  const cancelling = Boolean(subscription?.cancel_at_period_end);
   const hasBillingAccount = Boolean(subscription?.stripe_customer_id);
+  // Which rows and notes to show. Display only — access is decided by
+  // accessState(), which this does not touch.
+  const display = billingDisplay(subscription);
+  const renewalDate = display.renewal ? formatDate(display.renewal.date) : null;
 
   return (
     <main>
@@ -122,10 +136,13 @@ function Billing() {
       </h1>
       <p className="subtitle">Your plan, and what happens next</p>
 
-      {justCheckedOut && (
-        <div className="form-notice">
-          Payment received. Your subscription may take a few seconds to show
-          here.
+      {/* Gone the moment the subscription row shows up, rather than sitting on
+          top of a page that already shows it. */}
+      {awaitingWebhook && (
+        <div className="form-notice checkout-notice">
+          {stillPolling
+            ? "Payment received. Your subscription may take a few seconds to show here."
+            : "Payment received, but Stripe hasn't confirmed it to us yet. Refresh this page in a minute."}
         </div>
       )}
 
@@ -154,19 +171,17 @@ function Billing() {
             </span>
           </div>
 
-          {plan && !comped && (
+          {plan && display.showPrice && (
             <div className="pricing-row">
               <span className="pricing-label">Price</span>
               <span className="pricing-value">{PLAN_PRICE_LABEL[plan]}</span>
             </div>
           )}
 
-          {renewal && (
+          {display.renewal && renewalDate && (
             <div className="pricing-row">
-              <span className="pricing-label">
-                {cancelling ? "Access ends" : "Next renewal"}
-              </span>
-              <span className="pricing-value">{renewal}</span>
+              <span className="pricing-label">{display.renewal.label}</span>
+              <span className="pricing-value">{renewalDate}</span>
             </div>
           )}
         </div>
@@ -180,18 +195,38 @@ function Billing() {
           </p>
         )}
 
-        {comped && (
-          <p className="field-hint">
+        {display.compedNote === "comped_only" && (
+          <p className="field-hint comped-note">
             Your access is complimentary. There&rsquo;s nothing to pay and no
             card on file.
           </p>
         )}
 
-        {cancelling && (
-          <div className="warning-banner">
-            Your subscription is set to cancel. You keep access until{" "}
-            {renewal ?? "the end of the current period"}. Reopen the portal to
-            undo it.
+        {display.compedNote === "comped_and_live" && (
+          <p className="field-hint comped-note">
+            Your access is complimentary, and you also have a live Stripe
+            subscription that is being billed. You keep access either way — cancel
+            the subscription in the billing portal if you don&rsquo;t need it.
+          </p>
+        )}
+
+        {display.showCancellingBanner && (
+          <div className="warning-banner cancelling-banner">
+            {comped ? (
+              // Their access doesn't end with the subscription, so don't say it
+              // does.
+              <>
+                Your subscription is set to cancel on{" "}
+                {renewalDate ?? "the end of the current period"}. Your
+                complimentary access isn&rsquo;t affected.
+              </>
+            ) : (
+              <>
+                Your subscription is set to cancel. You keep access until{" "}
+                {renewalDate ?? "the end of the current period"}. Reopen the
+                portal to undo it.
+              </>
+            )}
           </div>
         )}
 
