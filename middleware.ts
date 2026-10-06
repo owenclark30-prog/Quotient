@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { launchGateDecision, WAITLIST_PATH } from "@/lib/launch-gate";
 
 /**
  * Pre-launch gate.
@@ -11,28 +12,23 @@ import { NextResponse, type NextRequest } from "next/server";
  * inlined into the client bundle and the gate cannot be flipped from the
  * browser.
  *
- * Fail-open by design: only the exact string "waitlist" raises the gate.
- * Unset, mistyped, or anything else runs the app as normal — losing an env var
- * should not hide the whole product behind a signup form.
+ * The rule itself lives in lib/launch-gate.ts so it can be tested without a
+ * server; this is the shell that turns its decision into a response.
  */
-const WAITLIST_PATH = "/waitlist";
-
 export function middleware(request: NextRequest) {
-  if (process.env.LAUNCH_MODE !== "waitlist") return NextResponse.next();
+  const decision = launchGateDecision(
+    process.env.LAUNCH_MODE,
+    request.nextUrl.pathname
+  );
 
-  const { pathname } = request.nextUrl;
-
-  // Serve the page itself, or the gate would redirect to itself forever.
-  if (pathname === WAITLIST_PATH) return NextResponse.next();
-
-  // Rewrite rather than redirect, so the waitlist is what "/" actually is.
-  if (pathname === "/") {
-    return NextResponse.rewrite(new URL(WAITLIST_PATH, request.url));
+  switch (decision.action) {
+    case "rewrite":
+      return NextResponse.rewrite(new URL(decision.to, request.url));
+    case "redirect":
+      return NextResponse.redirect(new URL(decision.to, request.url));
+    default:
+      return NextResponse.next();
   }
-
-  // Everything else — /login, /rate-card, /onboarding/* — goes to the front
-  // door. The whole app is sealed while the gate is up.
-  return NextResponse.redirect(new URL("/", request.url));
 }
 
 export const config = {
@@ -40,3 +36,5 @@ export const config = {
   // itself. Anything with a file extension is left alone for the same reason.
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.[\\w]+$).*)"],
 };
+
+export { WAITLIST_PATH };
