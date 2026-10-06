@@ -111,7 +111,14 @@ export function PriceThisClient({
       fields,
       costSettings.conservatismFactor
     );
-    const result = calculatePricing(inputs, cost, rule.monthly_fee);
+    // Rounded with the agency's own setting. The unrounded figures come back
+    // alongside as `calculated`, and both go into the snapshot.
+    const result = calculatePricing(
+      inputs,
+      cost,
+      rule.monthly_fee,
+      costSettings.rounding
+    );
 
     const custom = {
       setup_fee: Number(customSetup),
@@ -379,14 +386,36 @@ export function PriceThisClient({
                 {formatGBP(rule.setup_fee)} + {formatGBP(rule.monthly_fee)}/mo
               </span>
             </div>
-            {result.recommended && (
-              <div className="pricing-row">
-                <span className="pricing-label">Suggested</span>
-                <span className="pricing-value">
-                  {formatGBP(result.recommended.setup)} +{" "}
-                  {formatGBP(result.recommended.monthly)}/mo
-                </span>
-              </div>
+            {result.recommended && result.calculated && (
+              <>
+                {/* The price beside the maths that produced it. With rounding
+                    off they're the same number, so the second half is left out
+                    rather than repeated. */}
+                <div className="pricing-row suggested-monthly">
+                  <span className="pricing-label">Suggested monthly</span>
+                  <span className="pricing-value">
+                    {formatGBP(result.recommended.monthly)}/mo
+                    {result.rounding.style !== "off" && (
+                      <span className="pricing-calculated">
+                        {" "}
+                        (calculated {formatGBP(result.calculated.monthly)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <div className="pricing-row suggested-setup">
+                  <span className="pricing-label">Suggested setup</span>
+                  <span className="pricing-value">
+                    {formatGBP(result.recommended.setup)}
+                    {result.rounding.style !== "off" && (
+                      <span className="pricing-calculated">
+                        {" "}
+                        (calculated {formatGBP(result.calculated.setup)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </>
             )}
             {result.roi != null && (
               <div className="pricing-row">

@@ -195,3 +195,53 @@ describe("the lever form", () => {
     assert.equal(rate.default, undefined);
   });
 });
+
+describe("a snapshot freezes the rounding", () => {
+  // Built the way PriceThisClient builds one: the result carries the
+  // calculated figures, the rounded ones and the settings that produced them,
+  // and the snapshot stores the result whole.
+  function roundedSnapshot(): PricingSnapshot {
+    const snapshot = snapshotFixture();
+    const result = calculatePricing(snapshot.inputs, snapshot.cost, 400, {
+      style: "charm",
+      ending: 7,
+      step: 50,
+    });
+    return { ...snapshot, result };
+  }
+
+  it("stores the calculated and the rounded fees", () => {
+    const stored = parsePricingSnapshot(
+      JSON.parse(JSON.stringify(roundedSnapshot())) as unknown
+    );
+    // Missed lever alone: Vc 2268, target 340 → charm 7 on £50 → 347.
+    assert.deepEqual(stored?.result.calculated, { monthly: 340, setup: 1250 });
+    assert.deepEqual(stored?.result.recommended, { monthly: 347, setup: 1297 });
+  });
+
+  it("stores the settings used and the steps they resolved to", () => {
+    const stored = parsePricingSnapshot(
+      JSON.parse(JSON.stringify(roundedSnapshot())) as unknown
+    );
+    assert.deepEqual(stored?.result.rounding, {
+      style: "charm",
+      ending: 7,
+      step: 50,
+      monthlyStep: 50,
+      setupStep: 50,
+    });
+  });
+
+  it("still parses a snapshot saved before rounding existed", () => {
+    // Older proposals have no `calculated` or `rounding` on their result. They
+    // must keep rendering exactly as they did.
+    const old = JSON.parse(JSON.stringify(snapshotFixture())) as {
+      result: Record<string, unknown>;
+    };
+    delete old.result.calculated;
+    delete old.result.rounding;
+    const parsed = parsePricingSnapshot(old as unknown);
+    assert.ok(parsed, "an old snapshot was rejected");
+    assert.equal(expectedReturnFromSnapshot(parsed!).monthlyFee, 400);
+  });
+});
