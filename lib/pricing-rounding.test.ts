@@ -2,27 +2,15 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   calculatePricing,
-  defaultMonthlyStep,
-  defaultSetupStep,
+  charmStep,
+  cleanStep,
   nearestCandidate,
   roundFee,
-  ROUNDING_DEFAULTS,
+  ROUNDING_DEFAULT,
   type DeliveryCost,
   type PricingInputs,
-  type RoundingSettings,
+  type RoundingStyle,
 } from "./pricing.ts";
-
-const off: RoundingSettings = { style: "off", ending: 7, step: null };
-const clean = (step: number | null = null): RoundingSettings => ({
-  style: "clean",
-  ending: 7,
-  step,
-});
-const charm = (ending: 7 | 9, step: number | null = null): RoundingSettings => ({
-  style: "charm",
-  ending,
-  step,
-});
 
 /** The dental worked example: floor 280, range 287/431/718, setup floor 1250. */
 const DENTAL: PricingInputs = {
@@ -56,282 +44,274 @@ const costWithFloor = (monthlyFloor: number): DeliveryCost => ({
   supportHours: (monthlyFloor - 80) / 50,
 });
 
-const dental = (rounding: RoundingSettings, cost: DeliveryCost = COST) =>
+const dental = (rounding: RoundingStyle, cost: DeliveryCost = COST) =>
   calculatePricing(DENTAL, cost, 197, rounding);
+
+/** Round a monthly fee with nothing in the way. */
+const monthly = (amount: number, style: RoundingStyle) =>
+  roundFee(amount, style, "monthly", { min: 0 }).price;
+/** Round a setup fee with nothing in the way. */
+const setup = (amount: number, style: RoundingStyle) =>
+  roundFee(amount, style, "setup", { min: 0 }).price;
 
 describe("the dental worked example", () => {
   it("has the floor, range and setup floor the example states", () => {
-    const result = dental(off);
+    const result = dental("off");
     assert.deepEqual(result.floor, { monthly: 280, setup: 1250 });
     assert.deepEqual(result.range, { low: 287, target: 431, high: 718 });
   });
 
-  it("clean rounds monthly to 425 and leaves setup at 1250", () => {
-    const result = dental(clean());
-    assert.deepEqual(result.recommended, { monthly: 425, setup: 1250 });
+  it("clean: £425 a month, £1,250 setup", () => {
+    assert.deepEqual(dental("clean").recommended, { monthly: 425, setup: 1250 });
   });
 
-  it("charm 7 with step 50 rounds monthly to 447", () => {
-    assert.equal(dental(charm(7, 50)).recommended!.monthly, 447);
+  it("charm: £429 a month", () => {
+    assert.equal(dental("charm").recommended!.monthly, 429);
   });
 
-  it("charm 7 with step 50 rounds setup to 1297, not below its 1250 floor", () => {
-    // The nearest charm price to 1250 is 1247, which is £3 under the setup
-    // floor. Setup must be at least floorSetup, so the guard takes the next
-    // candidate up. See the PR for the conflict with the brief's 1247.
-    const result = dental(charm(7, 50));
-    assert.equal(result.recommended!.setup, 1297);
+  it("charm: setup respects the floor guard — £1,299, not £1,249", () => {
+    // The nearest setup price ending in 9 is £1,249, £1 under the £1,250
+    // setup floor. The guard takes the next one up.
+    const result = dental("charm");
+    assert.equal(result.recommended!.setup, 1299);
     assert.ok(result.recommended!.setup >= result.floor.setup);
   });
 
-  it("charm 7 on the scaled default lands on the same 447 / 1297", () => {
-    // 431 is in the £25 band; a charm price on a £25 step ending in 7 is a
-    // £50 spacing in practice, so the answer matches step 50.
-    assert.deepEqual(dental(charm(7)).recommended, { monthly: 447, setup: 1297 });
-  });
-
   it("keeps the unrounded figures alongside", () => {
-    for (const rounding of [clean(), charm(7, 50), charm(9), off]) {
-      assert.deepEqual(dental(rounding).calculated, { monthly: 431, setup: 1250 });
+    for (const style of ["off", "clean", "charm"] as const) {
+      assert.deepEqual(dental(style).calculated, { monthly: 431, setup: 1250 });
     }
   });
 });
 
 describe("clean", () => {
-  it("rounds to the nearest multiple of the step", () => {
-    assert.equal(roundFee(431, clean(25), "monthly", { min: 0 }).price, 425);
-    assert.equal(roundFee(440, clean(25), "monthly", { min: 0 }).price, 450);
-    assert.equal(roundFee(431, clean(50), "monthly", { min: 0 }).price, 450);
-    assert.equal(roundFee(1249, clean(50), "setup", { min: 0 }).price, 1250);
+  it("rounds to the nearest multiple of the scaled step", () => {
+    assert.equal(monthly(62, "clean"), 60); // £5 step
+    assert.equal(monthly(431, "clean"), 425); // £25 step
+    assert.equal(monthly(812, "clean"), 800); // £50 step
+    assert.equal(monthly(3140, "clean"), 3100); // £100 step
+  });
+
+  it("rounds setup on £50 under £2,000 and £100 above", () => {
+    assert.equal(setup(1270, "clean"), 1250);
+    assert.equal(setup(2140, "clean"), 2100);
   });
 
   it("rounds a tie up", () => {
-    assert.equal(roundFee(425, clean(50), "monthly", { min: 0 }).price, 450);
+    assert.equal(monthly(437.5, "clean"), 450);
   });
 
-  it("leaves an amount already on the grid alone", () => {
-    assert.equal(roundFee(450, clean(50), "monthly", { min: 0 }).price, 450);
+  it("leaves an amount already on a step alone", () => {
+    assert.equal(monthly(450, "clean"), 450);
   });
 });
 
 describe("charm", () => {
-  const charmAt = (amount: number, ending: 7 | 9, step: number) =>
-    roundFee(amount, charm(ending, step), "monthly", { min: 0 }).price;
-
-  it("ending 7, step 50: 447, 497, 547", () => {
-    assert.equal(charmAt(440, 7, 50), 447);
-    assert.equal(charmAt(495, 7, 50), 497);
-    assert.equal(charmAt(551, 7, 50), 547);
+  it("under £500 a month: nearest £10, less £1", () => {
+    assert.equal(monthly(431, "charm"), 429);
+    assert.equal(monthly(436, "charm"), 439);
+    assert.equal(monthly(62, "charm"), 59);
   });
 
-  it("ending 9, step 50: 449, 499, 549", () => {
-    assert.equal(charmAt(440, 9, 50), 449);
-    assert.equal(charmAt(495, 9, 50), 499);
-    assert.equal(charmAt(551, 9, 50), 549);
+  it("£500 to £2,000 a month: nearest £50, less £1", () => {
+    assert.equal(monthly(560, "charm"), 549);
+    assert.equal(monthly(580, "charm"), 599);
+    assert.equal(monthly(1490, "charm"), 1499);
   });
 
-  it("ending 7, step 100: 397, 497, 597", () => {
-    assert.equal(charmAt(410, 7, 100), 397);
-    assert.equal(charmAt(480, 7, 100), 497);
-    assert.equal(charmAt(620, 7, 100), 597);
+  it("over £2,000 a month: nearest £100, less £1", () => {
+    assert.equal(monthly(2440, "charm"), 2399);
+    assert.equal(monthly(2460, "charm"), 2499);
   });
 
-  it("always ends in the chosen digit, whatever the step", () => {
-    // A multiple of 25 minus 3 could end in 2 (72); the grid skips those.
-    for (const step of [5, 8, 15, 25, 50, 100]) {
-      for (const ending of [7, 9] as const) {
-        for (let amount = 30; amount <= 3000; amount += 37) {
-          const price = charmAt(amount, ending, step);
-          assert.equal(price % 10, ending, `step ${step}, ending ${ending}, ${amount} → ${price}`);
-        }
-      }
+  it("setup: nearest £50 less £1 under £2,000, £100 less £1 above", () => {
+    assert.equal(setup(1260, "charm"), 1249);
+    assert.equal(setup(1280, "charm"), 1299);
+    assert.equal(setup(2440, "charm"), 2399);
+  });
+
+  it("always ends in 9", () => {
+    for (let amount = 20; amount <= 5000; amount += 13) {
+      assert.equal(monthly(amount, "charm") % 10, 9, `monthly ${amount}`);
+      assert.equal(setup(amount, "charm") % 10, 9, `setup ${amount}`);
     }
   });
 });
 
 describe("off", () => {
   it("returns the amount untouched, with no step", () => {
-    assert.deepEqual(roundFee(431, off, "monthly", { min: 0 }), { price: 431, step: null });
+    assert.deepEqual(roundFee(431, "off", "monthly", { min: 0 }), {
+      price: 431,
+      step: null,
+    });
   });
 
   it("gives exactly the result of calling with no rounding at all", () => {
     assert.deepEqual(
-      calculatePricing(DENTAL, COST, 197, off),
+      calculatePricing(DENTAL, COST, 197, "off"),
       calculatePricing(DENTAL, COST, 197)
     );
   });
 
   it("leaves recommended equal to calculated", () => {
-    const result = dental(off);
+    const result = dental("off");
     assert.deepEqual(result.recommended, result.calculated);
   });
 });
 
-describe("the scaled default step", () => {
-  it("monthly: £5, £25, £50, £100 by size", () => {
-    assert.equal(defaultMonthlyStep(60), 5);
-    assert.equal(defaultMonthlyStep(431), 25);
-    assert.equal(defaultMonthlyStep(800), 50);
-    assert.equal(defaultMonthlyStep(3000), 100);
+describe("the scales", () => {
+  it("clean monthly: £5, £25, £50, £100, a boundary amount taking the band above", () => {
+    assert.equal(cleanStep(99, "monthly"), 5);
+    assert.equal(cleanStep(100, "monthly"), 25);
+    assert.equal(cleanStep(499, "monthly"), 25);
+    assert.equal(cleanStep(500, "monthly"), 50);
+    assert.equal(cleanStep(1999, "monthly"), 50);
+    assert.equal(cleanStep(2000, "monthly"), 100);
   });
 
-  it("puts a boundary amount in the band above", () => {
-    assert.equal(defaultMonthlyStep(99), 5);
-    assert.equal(defaultMonthlyStep(100), 25);
-    assert.equal(defaultMonthlyStep(499), 25);
-    assert.equal(defaultMonthlyStep(500), 50);
-    assert.equal(defaultMonthlyStep(1999), 50);
-    assert.equal(defaultMonthlyStep(2000), 100);
+  it("charm monthly: £10 under £500, £50 to £2,000, £100 above", () => {
+    assert.equal(charmStep(99, "monthly"), 10);
+    assert.equal(charmStep(499, "monthly"), 10);
+    assert.equal(charmStep(500, "monthly"), 50);
+    assert.equal(charmStep(1999, "monthly"), 50);
+    assert.equal(charmStep(2000, "monthly"), 100);
   });
 
-  it("setup: £50 under £2,000, £100 from £2,000", () => {
-    assert.equal(defaultSetupStep(1250), 50);
-    assert.equal(defaultSetupStep(1999), 50);
-    assert.equal(defaultSetupStep(2000), 100);
-    assert.equal(defaultSetupStep(5000), 100);
-  });
-
-  it("is overridden by an explicit step", () => {
-    assert.equal(roundFee(431, clean(50), "monthly", { min: 0 }).step, 50);
-    assert.equal(roundFee(431, clean(null), "monthly", { min: 0 }).step, 25);
-  });
-
-  it("ignores a step that isn't a whole pound of at least £1", () => {
-    for (const bad of [0, -5, 12.5, Number.NaN]) {
-      assert.equal(roundFee(431, clean(bad), "monthly", { min: 0 }).step, 25, `step ${bad}`);
+  it("setup: £50 under £2,000, £100 from £2,000, for both styles", () => {
+    for (const step of [cleanStep, charmStep]) {
+      assert.equal(step(1999, "setup"), 50);
+      assert.equal(step(2000, "setup"), 100);
     }
   });
 });
 
 describe("the floor guard", () => {
-  it("takes the next candidate up when the nearest is below the floor", () => {
+  it("takes the next price up when the nearest is below the floor", () => {
     // 310 rounds to 300 on a £50 step, but the floor is 305.
-    assert.equal(nearestCandidate(310, clean(), 50, 305, 500), 350);
+    assert.equal(nearestCandidate(310, 50, 0, 305, 500), 350);
   });
 
-  it("holds through the full calculation", () => {
-    // Floor 437: the recommendation is the floor itself (target 431 is below
-    // it). Clean on £25 would give 425 — under the floor — so 450.
-    const result = dental(clean(), costWithFloor(437));
-    assert.equal(result.floor.monthly, 437);
+  it("clean: holds through the full calculation", () => {
+    // Floor 437, so the recommendation is the floor itself (target 431 is
+    // below it). Nearest £25 is 425, under the floor, so 450.
+    const result = dental("clean", costWithFloor(437));
     assert.equal(result.calculated!.monthly, 437);
     assert.equal(result.recommended!.monthly, 450);
   });
 
-  it("holds for charm too", () => {
-    // Floor 450: nearest charm-7 is 447, under the floor, so 497.
-    const result = dental(charm(7, 50), costWithFloor(450));
-    assert.equal(result.recommended!.monthly, 497);
+  it("charm: takes the next price ending in 9 above the floor", () => {
+    // Floor 432: nearest charm is 429, under it, so 439.
+    const result = dental("charm", costWithFloor(432));
+    assert.equal(result.calculated!.monthly, 432);
+    assert.equal(result.recommended!.monthly, 439);
   });
 });
 
 describe("the range guard", () => {
-  it("takes the next candidate down when the nearest is above the range", () => {
+  it("takes the next price down when the nearest is above the range", () => {
     // 760 rounds to 800 on a £100 step, but the top of the range is 765.
-    assert.equal(nearestCandidate(760, clean(), 100, 600, 765), 700);
+    assert.equal(nearestCandidate(760, 100, 0, 600, 765), 700);
   });
 
-  it("never leaves [floor, high] across a sweep of floors and styles", () => {
-    const styles = [clean(), clean(50), clean(100), charm(7), charm(9), charm(7, 50), charm(9, 100)];
-    for (let floor = 280; floor <= 718; floor += 7) {
-      for (const rounding of styles) {
-        const result = dental(rounding, costWithFloor(floor));
+  it("never leaves [floor, high] across a sweep of floors", () => {
+    for (let floor = 280; floor <= 718; floor += 3) {
+      for (const style of ["clean", "charm"] as const) {
+        const result = dental(style, costWithFloor(floor));
         if (!result.recommended) continue;
-        const { monthly } = result.recommended;
+        const { monthly: price } = result.recommended;
         const min = Math.max(result.floor.monthly, result.range!.low);
         assert.ok(
-          monthly >= min && monthly <= result.range!.high,
-          `floor ${floor}, ${rounding.style}/${rounding.ending}/${rounding.step}: ${monthly} outside [${min}, ${result.range!.high}]`
+          price >= min && price <= result.range!.high,
+          `floor ${floor}, ${style}: ${price} outside [${min}, ${result.range!.high}]`
         );
       }
     }
   });
 });
 
-describe("when no candidate fits", () => {
-  it("returns null from the candidate search", () => {
+describe("when nothing fits", () => {
+  it("the search returns null", () => {
     // [305, 340] holds no multiple of 50.
-    assert.equal(nearestCandidate(310, clean(), 50, 305, 340), null);
+    assert.equal(nearestCandidate(310, 50, 0, 305, 340), null);
   });
 
-  it("falls back to the unrounded recommendation", () => {
-    // Floor 710 against a high of 718: no multiple of 50 lies in [710, 718].
-    const result = dental(clean(50), costWithFloor(710));
+  it("clean falls back to the unrounded recommendation", () => {
+    // Floor 710 against a high of 718: the recommendation is 710, in the £50
+    // band, and no multiple of 50 lies in [710, 718].
+    const result = dental("clean", costWithFloor(710));
     assert.equal(result.calculated!.monthly, 710);
     assert.equal(result.recommended!.monthly, 710);
   });
 
-  it("falls back when the step is too coarse for the range", () => {
-    // No multiple of £1,000 between 287 and 718.
-    assert.equal(dental(clean(1000)).recommended!.monthly, 431);
+  it("charm falls back too", () => {
+    // Floor 702: £50 band, so 649 / 699 / 749 — none in [702, 718].
+    const result = dental("charm", costWithFloor(702));
+    assert.equal(result.calculated!.monthly, 702);
+    assert.equal(result.recommended!.monthly, 702);
   });
 });
 
 describe("the setup fee", () => {
+  const BIG: PricingInputs = {
+    levers: ["time"],
+    time: { hoursSaved: 400, staffCostPerHour: 24 },
+  };
+
   it("is never below the setup floor", () => {
-    for (const rounding of [clean(), charm(7), charm(9), charm(7, 100), clean(100)]) {
-      const result = dental(rounding);
-      assert.ok(result.recommended!.setup >= result.floor.setup, rounding.style);
+    for (const style of ["clean", "charm"] as const) {
+      const result = dental(style);
+      assert.ok(result.recommended!.setup >= result.floor.setup, style);
     }
   });
 
   it("is at least twice the rounded monthly", () => {
-    // ~£1,000/mo: twice the monthly outweighs the £1,250 setup floor.
-    const big: PricingInputs = {
-      levers: ["time"],
-      time: { hoursSaved: 400, staffCostPerHour: 24 },
-    };
-    const cleanResult = calculatePricing(big, COST, undefined, clean());
-    assert.equal(cleanResult.recommended!.monthly, 1000);
-    assert.equal(cleanResult.recommended!.setup, 2000);
+    // ~£1,000/mo, so twice the monthly outweighs the £1,250 setup floor.
+    const clean = calculatePricing(BIG, COST, undefined, "clean");
+    assert.deepEqual(clean.recommended, { monthly: 1000, setup: 2000 });
 
-    const charmResult = calculatePricing(big, COST, undefined, charm(7, 50));
-    const { monthly, setup } = charmResult.recommended!;
-    assert.ok(setup >= 2 * monthly, `${setup} < 2 × ${monthly}`);
-    assert.equal(setup % 10, 7);
+    const charm = calculatePricing(BIG, COST, undefined, "charm");
+    const { monthly: m, setup: s } = charm.recommended!;
+    assert.equal(m, 999);
+    assert.ok(s >= 2 * m, `${s} < 2 × ${m}`);
+    assert.equal(s, 1999);
   });
 
   it("is re-derived from the rounded monthly, not the calculated one", () => {
-    // Rounded monthly 1000 → setup minimum 2000. From the calculated 1008 it
-    // would have been 2016, rounding to 2100.
-    const big: PricingInputs = {
-      levers: ["time"],
-      time: { hoursSaved: 400, staffCostPerHour: 24 },
-    };
-    const result = calculatePricing(big, COST, undefined, clean());
-    assert.equal(result.calculated!.monthly, 1008);
-    assert.equal(result.calculated!.setup, 2016);
+    // Calculated monthly 1008 → setup 2016. Rounded monthly 1000 → setup 2000.
+    const result = calculatePricing(BIG, COST, undefined, "clean");
+    assert.deepEqual(result.calculated, { monthly: 1008, setup: 2016 });
     assert.equal(result.recommended!.setup, 2000);
   });
 
   it("only rounds up", () => {
-    // Its band has no ceiling and its starting point is its own minimum.
-    assert.equal(roundFee(1250, clean(), "setup", { min: 1250 }).price, 1250);
-    assert.equal(roundFee(1251, clean(), "setup", { min: 1251 }).price, 1300);
-    assert.equal(roundFee(1250, charm(7), "setup", { min: 1250 }).price, 1297);
+    assert.equal(roundFee(1250, "clean", "setup", { min: 1250 }).price, 1250);
+    assert.equal(roundFee(1251, "clean", "setup", { min: 1251 }).price, 1300);
+    assert.equal(roundFee(1250, "charm", "setup", { min: 1250 }).price, 1299);
   });
 });
 
 describe("ROI and payback use the rounded fee", () => {
   it("measures ROI against what would be charged", () => {
-    // 2872.8 / 425, not 2872.8 / 431.
-    const result = dental(clean());
-    assert.equal(result.roi, 6.76);
-    assert.notEqual(result.roi, dental(off).roi);
+    // 2872.8 / 425 = 6.76, not 2872.8 / 431 = 6.67.
+    assert.equal(dental("clean").roi, 6.76);
+    assert.equal(dental("off").roi, 6.67);
   });
 
   it("measures payback against the rounded setup and monthly", () => {
-    // 1297 / (2872.8 - 447) = 0.5347…
-    assert.equal(dental(charm(7, 50)).paybackMonths, 0.53);
+    // 1299 / (2872.8 - 429) = 0.5315…
+    assert.equal(dental("charm").paybackMonths, 0.53);
   });
 });
 
 describe("what a result records about its rounding", () => {
-  it("the settings, and the steps they resolved to", () => {
-    assert.deepEqual(dental(charm(9)).rounding, {
+  it("the style, and the steps it resolved to", () => {
+    assert.deepEqual(dental("charm").rounding, {
       style: "charm",
-      ending: 9,
-      step: null,
+      monthlyStep: 10,
+      setupStep: 50,
+    });
+    assert.deepEqual(dental("clean").rounding, {
+      style: "clean",
       monthlyStep: 25,
       setupStep: 50,
     });
@@ -342,15 +322,19 @@ describe("what a result records about its rounding", () => {
       { levers: ["time"], time: { hoursSaved: 2, staffCostPerHour: 15 } },
       { ...COST, supportHours: 20, toolCostMonthly: 200 },
       undefined,
-      clean()
+      "clean"
     );
     assert.equal(notViable.status, "not_viable");
     assert.equal(notViable.recommended, null);
     assert.equal(notViable.calculated, null);
-    assert.equal(notViable.rounding.monthlyStep, null);
+    assert.deepEqual(notViable.rounding, {
+      style: "clean",
+      monthlyStep: null,
+      setupStep: null,
+    });
   });
 
   it("defaults an agency that has never set it to clean", () => {
-    assert.deepEqual(ROUNDING_DEFAULTS, { style: "clean", ending: 7, step: null });
+    assert.equal(ROUNDING_DEFAULT, "clean");
   });
 });

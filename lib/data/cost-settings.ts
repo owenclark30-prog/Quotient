@@ -3,9 +3,7 @@ import { getCurrentUserId } from "@/lib/supabase/session";
 import { errorMessage } from "@/lib/errors";
 import {
   PRICING_DEFAULTS,
-  ROUNDING_DEFAULTS,
-  type RoundingEnding,
-  type RoundingSettings,
+  ROUNDING_DEFAULT,
   type RoundingStyle,
 } from "@/lib/pricing";
 
@@ -20,7 +18,7 @@ export type AgencyCostSettings = {
   /** k, also a fraction. Shaves the estimate before it's ever quoted. */
   conservatismFactor: number;
   /** How a suggested fee is rounded into a price someone would quote. */
-  rounding: RoundingSettings;
+  roundingStyle: RoundingStyle;
 };
 
 export const DEFAULT_COST_SETTINGS: AgencyCostSettings = {
@@ -28,7 +26,7 @@ export const DEFAULT_COST_SETTINGS: AgencyCostSettings = {
   targetMargin: PRICING_DEFAULTS.targetMargin,
   toolCostMonthly: PRICING_DEFAULTS.toolCostMonthly,
   conservatismFactor: PRICING_DEFAULTS.conservatismFactor,
-  rounding: ROUNDING_DEFAULTS,
+  roundingStyle: ROUNDING_DEFAULT,
 };
 
 /** Anything the database could hand back that isn't one of the three styles —
@@ -37,20 +35,7 @@ export const DEFAULT_COST_SETTINGS: AgencyCostSettings = {
 function toStyle(value: unknown): RoundingStyle {
   return value === "off" || value === "clean" || value === "charm"
     ? value
-    : ROUNDING_DEFAULTS.style;
-}
-
-function toEnding(value: unknown): RoundingEnding {
-  const parsed = Number(value);
-  return parsed === 7 || parsed === 9 ? parsed : ROUNDING_DEFAULTS.ending;
-}
-
-/** Null for "use the scaled default", and for anything that isn't a whole
- * pound of at least £1. */
-function toStep(value: unknown): number | null {
-  if (value === null || value === undefined) return null;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed >= 1 ? parsed : null;
+    : ROUNDING_DEFAULT;
 }
 
 /** PostgREST emits `numeric` as a JSON number, but a row written by hand or by
@@ -69,7 +54,7 @@ export async function getCostSettings(): Promise<AgencyCostSettings> {
   const { data, error } = await supabase
     .from("agency_cost_settings")
     .select(
-      "hourly_cost, target_margin, tool_cost_monthly, conservatism_factor, rounding_style, rounding_ending, rounding_step"
+      "hourly_cost, target_margin, tool_cost_monthly, conservatism_factor, rounding_style"
     )
     .eq("user_id", userId)
     .maybeSingle();
@@ -94,11 +79,7 @@ export async function getCostSettings(): Promise<AgencyCostSettings> {
       data.conservatism_factor,
       DEFAULT_COST_SETTINGS.conservatismFactor
     ),
-    rounding: {
-      style: toStyle(data.rounding_style),
-      ending: toEnding(data.rounding_ending),
-      step: toStep(data.rounding_step),
-    },
+    roundingStyle: toStyle(data.rounding_style),
   };
 }
 
@@ -127,9 +108,7 @@ export async function updateCostSettings(settings: AgencyCostSettings) {
     target_margin: settings.targetMargin,
     tool_cost_monthly: settings.toolCostMonthly,
     conservatism_factor: settings.conservatismFactor,
-    rounding_style: settings.rounding.style,
-    rounding_ending: settings.rounding.ending,
-    rounding_step: settings.rounding.step,
+    rounding_style: settings.roundingStyle,
     updated_at: new Date().toISOString(),
   });
 

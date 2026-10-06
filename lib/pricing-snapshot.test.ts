@@ -202,11 +202,7 @@ describe("a snapshot freezes the rounding", () => {
   // and the snapshot stores the result whole.
   function roundedSnapshot(): PricingSnapshot {
     const snapshot = snapshotFixture();
-    const result = calculatePricing(snapshot.inputs, snapshot.cost, 400, {
-      style: "charm",
-      ending: 7,
-      step: 50,
-    });
+    const result = calculatePricing(snapshot.inputs, snapshot.cost, 400, "charm");
     return { ...snapshot, result };
   }
 
@@ -214,20 +210,19 @@ describe("a snapshot freezes the rounding", () => {
     const stored = parsePricingSnapshot(
       JSON.parse(JSON.stringify(roundedSnapshot())) as unknown
     );
-    // Missed lever alone: Vc 2268, target 340 → charm 7 on £50 → 347.
+    // Missed lever alone: Vc 2268, target 340 → charm 339; setup floor 1250
+    // → 1299, the next price ending in 9 above it.
     assert.deepEqual(stored?.result.calculated, { monthly: 340, setup: 1250 });
-    assert.deepEqual(stored?.result.recommended, { monthly: 347, setup: 1297 });
+    assert.deepEqual(stored?.result.recommended, { monthly: 339, setup: 1299 });
   });
 
-  it("stores the settings used and the steps they resolved to", () => {
+  it("stores the style used and the steps it resolved to", () => {
     const stored = parsePricingSnapshot(
       JSON.parse(JSON.stringify(roundedSnapshot())) as unknown
     );
     assert.deepEqual(stored?.result.rounding, {
       style: "charm",
-      ending: 7,
-      step: 50,
-      monthlyStep: 50,
+      monthlyStep: 10,
       setupStep: 50,
     });
   });

@@ -72,10 +72,6 @@ export type Database = {
           tool_cost_monthly: number;
           conservatism_factor: number;
           rounding_style: "off" | "clean" | "charm";
-          /** 7 or 9. Only read when the style is charm. */
-          rounding_ending: number;
-          /** Whole pounds; null means the scaled default in lib/pricing.ts. */
-          rounding_step: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -86,8 +82,6 @@ export type Database = {
           tool_cost_monthly?: number;
           conservatism_factor?: number;
           rounding_style?: "off" | "clean" | "charm";
-          rounding_ending?: number;
-          rounding_step?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -98,8 +92,6 @@ export type Database = {
           tool_cost_monthly?: number;
           conservatism_factor?: number;
           rounding_style?: "off" | "clean" | "charm";
-          rounding_ending?: number;
-          rounding_step?: number | null;
           created_at?: string;
           updated_at?: string;
         };

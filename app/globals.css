@@ -1816,9 +1816,3 @@ a.button-secondary {
   font-weight: 500;
   color: var(--text-muted);
 }
-
-/* .fee-grid styles its inputs; a select in the same grid needs the same gap
-   under its label. */
-.fee-grid select {
-  margin-top: 4px;
-}

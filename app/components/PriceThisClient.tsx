@@ -117,7 +117,7 @@ export function PriceThisClient({
       inputs,
       cost,
       rule.monthly_fee,
-      costSettings.rounding
+      costSettings.roundingStyle
     );
 
     const custom = {

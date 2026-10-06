@@ -19,15 +19,13 @@ const USER = "44444444-0000-0000-0000-000000000004";
 
 // ------------------------------------------------------------------ fixtures
 
-const costRow = (rounding) => ({
+const costRow = (roundingStyle) => ({
   user_id: USER,
   hourly_cost: 25,
   target_margin: 0.5,
   tool_cost_monthly: 40,
   conservatism_factor: 0.7,
-  rounding_style: rounding.style,
-  rounding_ending: rounding.ending,
-  rounding_step: rounding.step,
+  rounding_style: roundingStyle,
 });
 
 // The dental worked example: floor 280, range 287/431/718, setup floor 1250.
@@ -51,7 +49,7 @@ const store = {
   settings: [{ user_id: USER, agency_name: "Accelerate", logo: null, contact_email: null, website: null }],
   // Comped, so the paywall lets every page through.
   subscriptions: [{ user_id: USER, comped: true, status: null, plan: null, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, past_due_since: null, claimed_at: null }],
-  agency_cost_settings: [costRow({ style: "clean", ending: 7, step: null })],
+  agency_cost_settings: [costRow("clean")],
 };
 
 let costUpserts = [];
@@ -136,8 +134,8 @@ const check = (name, actual, expected) => {
 const shot = async (name) => {
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${name}.png`, fullPage: true });
 };
-const setRounding = (rounding) => {
-  store.agency_cost_settings = [costRow(rounding)];
+const setRounding = (roundingStyle) => {
+  store.agency_cost_settings = [costRow(roundingStyle)];
 };
 
 async function openPricingStep() {
@@ -172,52 +170,58 @@ await page.waitForTimeout(800);
 
 // ===================================================== the settings control
 
-setRounding({ style: "charm", ending: 9, step: null });
+setRounding("charm");
 await page.goto(`${BASE}/settings`);
 await page.waitForSelector(".rounding-settings");
 
-const styleSelect = page.getByLabel("Rounding style");
-const endingSelect = page.getByLabel("Charm ending");
-const stepInput = page.getByLabel("Rounding step");
-
-check("settings: loads the saved style", await styleSelect.inputValue(), "charm");
-check("settings: charm shows the ending", await endingSelect.count(), 1);
-check("settings: loads the saved ending", await endingSelect.inputValue(), "9");
-check("settings: blank step means scaled", await stepInput.inputValue(), "");
-check("settings: step placeholder says it scales", await stepInput.getAttribute("placeholder"), "Scaled to price");
+const roundingSelect = page.getByLabel("Price rounding");
+check("settings: one control, labelled Price rounding", await roundingSelect.count(), 1);
+check("settings: loads the saved style", await roundingSelect.inputValue(), "charm");
+check(
+  "settings: the three options, in order",
+  JSON.stringify(await roundingSelect.locator("option").allInnerTexts()),
+  JSON.stringify(["Off", "Round to clean number", "Psychological pricing (ends in 9)"])
+);
+check(
+  "settings: no ending or step controls",
+  (await page.getByLabel("Charm ending").count()) + (await page.getByLabel("Rounding step").count()),
+  0
+);
+check(
+  "settings: the hint explains the chosen option",
+  (await page.locator(".rounding-settings .field-hint").innerText()).includes("ending in 9"),
+  true
+);
 await shot("rounding-settings-charm");
 
-await styleSelect.selectOption("clean");
-check("settings: clean hides the ending", await endingSelect.count(), 0);
-check("settings: clean keeps the step", await stepInput.count(), 1);
+await roundingSelect.selectOption("clean");
+check(
+  "settings: the hint follows the selection",
+  (await page.locator(".rounding-settings .field-hint").innerText()).includes("nearest £5"),
+  true
+);
 
-await styleSelect.selectOption("off");
-check("settings: off hides the step too", await stepInput.count(), 0);
-
-await styleSelect.selectOption("charm");
-await endingSelect.selectOption("7");
-await stepInput.fill("12.5");
-check("settings: a fractional step blocks saving", await page.locator("button", { hasText: "Save cost settings" }).isDisabled(), true);
-
-await stepInput.fill("50");
 costUpserts = [];
 await page.locator("button", { hasText: "Save cost settings" }).click();
 await page.waitForTimeout(800);
 const saved = costUpserts.at(-1) ?? {};
-check("settings: saves the style", saved.rounding_style, "charm");
-check("settings: saves the ending", saved.rounding_ending, 7);
-check("settings: saves the step", saved.rounding_step, 50);
-await shot("rounding-settings-saved");
+check("settings: saves the style", saved.rounding_style, "clean");
+check(
+  "settings: writes no ending or step columns",
+  "rounding_ending" in saved || "rounding_step" in saved,
+  false
+);
 
-await stepInput.fill("");
+await roundingSelect.selectOption("off");
 costUpserts = [];
 await page.locator("button", { hasText: "Save cost settings" }).click();
 await page.waitForTimeout(800);
-check("settings: an emptied step saves as null (scaled)", (costUpserts.at(-1) ?? {}).rounding_step, null);
+check("settings: saves off", (costUpserts.at(-1) ?? {}).rounding_style, "off");
+await shot("rounding-settings-saved");
 
 // ============================================== "Suggested £X (calculated £Y)"
 
-setRounding({ style: "clean", ending: 7, step: null });
+setRounding("clean");
 await openPricingStep();
 {
   const s = await suggested();
@@ -226,21 +230,22 @@ await openPricingStep();
   await shot("rounding-suggested-clean");
 }
 
-setRounding({ style: "charm", ending: 7, step: 50 });
+setRounding("charm");
 await openPricingStep();
 {
   const s = await suggested();
-  check("charm 7 step 50: monthly", s.monthly, "£447/mo (calculated £431)");
-  check("charm 7 step 50: setup", s.setup, "£1,297 (calculated £1,250)");
+  check("charm: monthly", s.monthly, "£429/mo (calculated £431)");
+  // £1,249 would be £1 under the setup floor, so the next price ending in 9.
+  check("charm: setup respects the floor", s.setup, "£1,299 (calculated £1,250)");
   check(
     "charm: ROI is against the rounded fee",
-    (await page.locator(".price-results .pricing-row", { hasText: "Return on the suggested fee" }).innerText()).includes("6.4×"),
+    (await page.locator(".price-results .pricing-row", { hasText: "Return on the suggested fee" }).innerText()).includes("6.7×"),
     true
   );
   await shot("rounding-suggested-charm");
 }
 
-setRounding({ style: "off", ending: 7, step: null });
+setRounding("off");
 await openPricingStep();
 {
   const s = await suggested();
@@ -250,12 +255,12 @@ await openPricingStep();
 
 // ============================================== custom fees are untouched
 
-setRounding({ style: "charm", ending: 7, step: 50 });
+setRounding("charm");
 await openPricingStep();
 await page.locator("button", { hasText: "Type custom" }).click();
 const customInputs = page.locator(".price-results > .fee-grid input");
-check("custom: seeded from the suggested setup", await customInputs.nth(0).inputValue(), "1297");
-check("custom: seeded from the suggested monthly", await customInputs.nth(1).inputValue(), "447");
+check("custom: seeded from the suggested setup", await customInputs.nth(0).inputValue(), "1299");
+check("custom: seeded from the suggested monthly", await customInputs.nth(1).inputValue(), "429");
 await customInputs.nth(1).fill("433");
 await page.waitForTimeout(300);
 check(
@@ -273,7 +278,7 @@ await page.locator("button", { hasText: "Generate Proposal" }).click();
 await page.waitForSelector(".proposal");
 check(
   "proposal: charges the rounded monthly",
-  (await page.locator(".proposal-pricing").first().innerText()).includes("£447/mo"),
+  (await page.locator(".proposal-pricing").first().innerText()).includes("£429/mo"),
   true
 );
 
@@ -282,23 +287,23 @@ await page.locator("button", { hasText: "Save Proposal" }).click();
 await page.waitForTimeout(1000);
 const frozen = store.proposals[0]?.pricing_inputs ?? {};
 check("snapshot: calculated fees", JSON.stringify(frozen.result?.calculated), JSON.stringify({ monthly: 431, setup: 1250 }));
-check("snapshot: rounded fees", JSON.stringify(frozen.result?.recommended), JSON.stringify({ monthly: 447, setup: 1297 }));
+check("snapshot: rounded fees", JSON.stringify(frozen.result?.recommended), JSON.stringify({ monthly: 429, setup: 1299 }));
 check(
-  "snapshot: the rounding settings used",
+  "snapshot: the rounding style used",
   JSON.stringify(frozen.result?.rounding),
-  JSON.stringify({ style: "charm", ending: 7, step: 50, monthlyStep: 50, setupStep: 50 })
+  JSON.stringify({ style: "charm", monthlyStep: 10, setupStep: 50 })
 );
-check("snapshot: fees charged are the rounded ones", `${frozen.applied?.setupFee}/${frozen.applied?.monthlyFee}`, "1297/447");
-check("snapshot: saved proposal's fee columns match", `${store.proposals[0]?.setup_fee}/${store.proposals[0]?.monthly_fee}`, "1297/447");
+check("snapshot: fees charged are the rounded ones", `${frozen.applied?.setupFee}/${frozen.applied?.monthlyFee}`, "1299/429");
+check("snapshot: saved proposal's fee columns match", `${store.proposals[0]?.setup_fee}/${store.proposals[0]?.monthly_fee}`, "1299/429");
 
 // Change the setting afterwards and reopen: the saved proposal must not move.
-setRounding({ style: "clean", ending: 7, step: null });
+setRounding("clean");
 const savedId = store.proposals[0]?.id;
 await page.goto(`${BASE}/proposal?id=${savedId}`);
 await page.waitForSelector(".proposal");
 check(
   "saved proposal ignores a later change to the setting",
-  (await page.locator(".proposal-pricing").first().innerText()).includes("£447/mo"),
+  (await page.locator(".proposal-pricing").first().innerText()).includes("£429/mo"),
   true
 );
 await shot("rounding-saved-proposal");

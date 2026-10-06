@@ -6,13 +6,24 @@ import {
   type AgencyCostSettings,
 } from "@/lib/data/cost-settings";
 import { updateTierHours } from "@/lib/data/tiers";
-import {
-  defaultHoursForLevel,
-  type RoundingEnding,
-  type RoundingStyle,
-} from "@/lib/pricing";
+import { defaultHoursForLevel, type RoundingStyle } from "@/lib/pricing";
 import { errorMessage } from "@/lib/errors";
 import type { Tier } from "@/lib/supabase/types";
+
+const ROUNDING_OPTIONS: { value: RoundingStyle; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "clean", label: "Round to clean number" },
+  { value: "charm", label: "Psychological pricing (ends in 9)" },
+];
+
+/** What each option does, in the same scale lib/pricing.ts applies. */
+const ROUNDING_HINT: Record<RoundingStyle, string> = {
+  off: "Suggested fees are shown exactly as calculated.",
+  clean:
+    "Rounds to the nearest £5 under £100/mo, £25 to £500, £50 to £2,000 and £100 above; setup to £50, or £100 from £2,000. Never below your floor or outside the value range, and the calculated figure is always shown beside it.",
+  charm:
+    "Rounds to the nearest price ending in 9 — £429, £549, £2,499; setup £1,299. Never below your floor or outside the value range, and the calculated figure is always shown beside it.",
+};
 
 /** Hours held as strings so a field can be emptied back to "use the default"
  * rather than being stuck at 0, which is a different thing. */
@@ -60,15 +71,7 @@ export function CostSettings({
     Object.fromEntries(tiers.map((tier) => [tier.id, hoursOf(tier)]))
   );
   const [roundingStyle, setRoundingStyle] = useState<RoundingStyle>(
-    value.rounding.style
-  );
-  const [roundingEnding, setRoundingEnding] = useState<RoundingEnding>(
-    value.rounding.ending
-  );
-  // Blank means "use the scaled default" — kept as a string so the box can be
-  // emptied back to that, rather than being stuck on a number.
-  const [roundingStep, setRoundingStep] = useState(
-    value.rounding.step == null ? "" : String(value.rounding.step)
+    value.roundingStyle
   );
 
   const [saving, setSaving] = useState(false);
@@ -81,14 +84,8 @@ export function CostSettings({
   const marginValue = Number(margin);
   const toolsValue = Number(tools);
   const conservatismValue = Number(conservatism);
-  const stepText = roundingStep.trim();
-  const stepValue = stepText === "" ? null : Number(stepText);
-  // Whole pounds, at least £1 — the database's own CHECK, caught here first.
-  const stepValid =
-    stepValue === null || (Number.isInteger(stepValue) && stepValue >= 1);
 
   const valid =
-    stepValid &&
     Number.isFinite(hourlyValue) &&
     hourlyValue >= 0 &&
     // 0.95 is the database's own cap: at a margin of 1 the floor divides by zero.
@@ -115,11 +112,7 @@ export function CostSettings({
         targetMargin: marginValue / 100,
         toolCostMonthly: toolsValue,
         conservatismFactor: conservatismValue / 100,
-        rounding: {
-          style: roundingStyle,
-          ending: roundingEnding,
-          step: stepValue,
-        },
+        roundingStyle,
       };
       await updateCostSettings(settings);
 
@@ -233,63 +226,22 @@ export function CostSettings({
       </section>
 
       <section className="rounding-settings">
-        <label>Price rounding</label>
-        <div className="fee-grid">
-          <label>
-            Style
-            <select
-              aria-label="Rounding style"
-              value={roundingStyle}
-              onChange={(e) => {
-                setRoundingStyle(e.target.value as RoundingStyle);
-                touched();
-              }}
-            >
-              <option value="off">Off</option>
-              <option value="clean">Clean — 425, 450</option>
-              <option value="charm">Charm — 447, 497</option>
-            </select>
-          </label>
-          {/* The ending only means something for charm prices. */}
-          {roundingStyle === "charm" && (
-            <label>
-              Ending
-              <select
-                aria-label="Charm ending"
-                value={roundingEnding}
-                onChange={(e) => {
-                  setRoundingEnding(Number(e.target.value) as RoundingEnding);
-                  touched();
-                }}
-              >
-                <option value={7}>7 — 447, 497</option>
-                <option value={9}>9 — 449, 499</option>
-              </select>
-            </label>
-          )}
-          {roundingStyle !== "off" && (
-            <label>
-              Step (£)
-              <input
-                aria-label="Rounding step"
-                type="number"
-                min="1"
-                step="1"
-                placeholder="Scaled to price"
-                value={roundingStep}
-                onChange={(e) => {
-                  setRoundingStep(e.target.value);
-                  touched();
-                }}
-              />
-            </label>
-          )}
-        </div>
-        <p className="field-hint">
-          {roundingStyle === "off"
-            ? "Suggested fees are shown exactly as calculated."
-            : "Rounds the suggested fees into prices you'd quote, never below your floor or outside the value range. Leave the step blank to scale it with the price: £5 under £100/mo, £25 to £500, £50 to £2,000, £100 above — and £50 or £100 for setup. The calculated figure is always shown beside it."}
-        </p>
+        <label htmlFor="price-rounding">Price rounding</label>
+        <select
+          id="price-rounding"
+          value={roundingStyle}
+          onChange={(e) => {
+            setRoundingStyle(e.target.value as RoundingStyle);
+            touched();
+          }}
+        >
+          {ROUNDING_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="field-hint">{ROUNDING_HINT[roundingStyle]}</p>
       </section>
 
       <section>
@@ -366,9 +318,8 @@ export function CostSettings({
         </button>
         {!valid && (
           <p className="field-hint">
-            Check the figures above — margin is 0–95%, conservatism 1–100%,
-            the rounding step is whole pounds, and hours can&rsquo;t be
-            negative.
+            Check the figures above — margin is 0–95%, conservatism 1–100%, and
+            hours can&rsquo;t be negative.
           </p>
         )}
       </section>
