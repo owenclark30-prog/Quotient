@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { blocksNewCheckout } from "@/lib/billing";
+import { findBlockingSubscription } from "@/lib/billing-checkout";
 import { requestOrigin } from "@/lib/request-origin";
 import { idOf, priceIds, stripeClient } from "@/lib/stripe";
 import { supabaseAdmin, userFromRequest } from "@/lib/supabase/admin";
@@ -51,14 +52,39 @@ export async function POST(request: Request) {
   // Already paying. Selling them a second subscription would charge them twice
   // for the same thing, and Stripe would happily do it.
   if (blocksNewCheckout(existing)) {
-    return NextResponse.json(
-      {
-        error: "already_subscribed",
-        message:
-          "You already have an active subscription. Manage it in the billing portal.",
-      },
-      { status: 409 }
-    );
+    return refuseToPortal(request, stripe, existing?.stripe_customer_id ?? null);
+  }
+
+  // The same question asked of Stripe, which the database can lag behind: in
+  // the seconds between paying and the webhook landing, our row still looks
+  // like someone who has never subscribed. Stripe already knows.
+  //
+  // Before claim_plan on purpose — a refused customer must not have their row
+  // reset or hold a founder slot on the way out.
+  //
+  // Only possible when there is a customer to ask about. No stored customer
+  // means checkout is about to create a brand-new one, which has nothing.
+  if (existing?.stripe_customer_id) {
+    try {
+      const live = await findBlockingSubscription(
+        stripe,
+        existing.stripe_customer_id
+      );
+      if (live) {
+        console.warn(
+          `[billing/checkout] refused: ${existing.stripe_customer_id} already has ${live.id} (${live.status})`
+        );
+        return refuseToPortal(request, stripe, existing.stripe_customer_id);
+      }
+    } catch (err) {
+      // Can't confirm they don't already pay, so don't sell. Failing open here
+      // is the double charge this check exists to prevent.
+      console.error("[billing/checkout] subscription lookup", err);
+      return NextResponse.json(
+        { error: "Couldn't confirm your billing status. Try again." },
+        { status: 503 }
+      );
+    }
   }
 
   // Atomic, race-safe, and the only thing that decides founder vs standard.
@@ -125,6 +151,40 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+/**
+ * Turn a would-be second subscription away, with a way to manage the first.
+ *
+ * 409 with a Billing Portal URL the browser goes straight to. If the portal
+ * can't be opened, the refusal still stands — the page falls back to sending
+ * them to /settings/billing — because "couldn't open the portal" must never
+ * turn into "so here's another checkout".
+ */
+async function refuseToPortal(
+  request: Request,
+  stripe: ReturnType<typeof stripeClient>,
+  customerId: string | null
+) {
+  const body: { error: string; message: string; portalUrl?: string } = {
+    error: "already_subscribed",
+    message:
+      "You already have an active subscription. Manage it in the billing portal.",
+  };
+
+  if (customerId) {
+    try {
+      const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${requestOrigin(request)}/settings/billing`,
+      });
+      body.portalUrl = session.url;
+    } catch (err) {
+      console.error("[billing/checkout] portal for refusal", err);
+    }
+  }
+
+  return NextResponse.json(body, { status: 409 });
 }
 
 /**

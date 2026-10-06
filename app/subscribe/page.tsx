@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import {
   getFounderSlots,
   startCheckout,
+  type BillingError,
   type FounderSlots,
 } from "@/lib/data/billing";
 import {
@@ -59,12 +60,15 @@ function Subscribe() {
       const { url } = await startCheckout();
       window.location.href = url;
     } catch (err) {
-      const code = (err as Error & { code?: string }).code;
-      setError(
-        code === "already_subscribed"
-          ? "You already have an active subscription. Open the billing page to manage it."
-          : errorMessage(err, "Couldn't start checkout. Try again.")
-      );
+      const { code, portalUrl } = err as BillingError;
+      if (code === "already_subscribed") {
+        // They already pay. Take them to where they manage that, rather than
+        // leaving them on a page offering to sell it again. The billing page is
+        // the fallback if the portal couldn't be opened.
+        window.location.href = portalUrl ?? "/settings/billing";
+        return;
+      }
+      setError(errorMessage(err, "Couldn't start checkout. Try again."));
       setStarting(false);
     }
   }

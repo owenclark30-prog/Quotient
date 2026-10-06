@@ -37,7 +37,16 @@ async function authHeader(): Promise<Record<string, string>> {
   return { authorization: `Bearer ${session.access_token}` };
 }
 
-type ApiError = { error?: string; message?: string };
+type ApiError = { error?: string; message?: string; portalUrl?: string };
+
+/** What a failed billing call carries beyond its message. */
+export type BillingError = Error & {
+  /** e.g. "already_subscribed" — so the caller can tell "you already pay for
+   * this" from a genuine failure. */
+  code?: string;
+  /** Where to send someone who was refused a second subscription. */
+  portalUrl?: string;
+};
 
 async function post(path: string): Promise<{ url: string }> {
   const response = await fetch(path, {
@@ -50,12 +59,11 @@ async function post(path: string): Promise<{ url: string }> {
   };
 
   if (!response.ok) {
-    const error = new Error(
+    const error: BillingError = new Error(
       body.message ?? body.error ?? "Something went wrong."
     );
-    // Carried so the caller can tell "you already pay for this" from a genuine
-    // failure, and send them to the portal instead of showing an error.
-    (error as Error & { code?: string }).code = body.error;
+    error.code = body.error;
+    error.portalUrl = body.portalUrl;
     throw error;
   }
 

@@ -49,6 +49,10 @@ page.on("console", (m) => {
   // Next dev logs this when a soft navigation is interrupted by the next one,
   // then falls back to a full navigation. A harness artefact, not an app error.
   if (m.text().startsWith("Failed to fetch RSC payload")) return;
+  // Chrome logs every non-2xx response. The refusal scenarios mock a 409 and a
+  // 503 on purpose and assert on what the page does with them; those two are
+  // expected. Any other failed resource still fails the run.
+  if (/Failed to load resource: .* status of (409|503)\b/.test(m.text())) return;
   errors.push(m.text());
 });
 page.on("pageerror", (e) => errors.push(String(e)));
@@ -210,6 +214,12 @@ subRow = compedOnly();
   check("comped only: no Next renewal", box.includes("Next renewal"), false);
   check("comped only: no Access ends", box.includes("Access ends"), false);
   check("comped only: says no card on file", (await page.locator(".comped-note").innerText()).includes("no card on file"), true);
+  const subscribeLink = page.locator("a.button-primary", { hasText: "Subscribe" });
+  check(
+    "comped only: Subscribe button is not underlined",
+    await subscribeLink.evaluate((el) => getComputedStyle(el).textDecorationLine),
+    "none"
+  );
   await shot("billing-comped-only");
 }
 
@@ -324,6 +334,57 @@ subRow = row();
   await page.waitForTimeout(500);
   check("checkout, already reflected: banner never shown", await page.locator(".checkout-notice").count(), 0);
 }
+
+// ======================================== refused a second subscription → Portal
+
+// The checkout route answers 409 with a portal URL when Stripe (or the row)
+// says they already pay. The page must go there, not offer to sell again.
+const PORTAL_STUB = `${BASE}/__portal_stub`;
+await page.route("**/__portal_stub", (route) =>
+  route.fulfill({ contentType: "text/html", body: "<h1>Stripe portal (stub)</h1>" })
+);
+
+let checkoutResponse = null;
+await page.route("**/api/billing/checkout", (route) =>
+  route.fulfill({ status: checkoutResponse.status, json: checkoutResponse.body })
+);
+
+subRow = null;
+checkoutResponse = {
+  status: 409,
+  body: { error: "already_subscribed", message: "You already have an active subscription.", portalUrl: PORTAL_STUB },
+};
+await page.goto(`${BASE}/subscribe`);
+await page.waitForSelector(".plan-cta");
+await page.locator(".plan-cta").click();
+await page.waitForURL("**/__portal_stub", { timeout: 8000 }).catch(() => {});
+check("already subscribed: Subscribe goes to the Portal", path(), "/__portal_stub");
+
+// Portal couldn't be opened: still refused, sent to the billing page instead.
+checkoutResponse = {
+  status: 409,
+  body: { error: "already_subscribed", message: "You already have an active subscription." },
+};
+await page.goto(`${BASE}/subscribe`);
+await page.waitForSelector(".plan-cta");
+await page.locator(".plan-cta").click();
+await page.waitForURL("**/settings/billing", { timeout: 8000 }).catch(() => {});
+check("already subscribed, no portal URL: falls back to /settings/billing", path(), "/settings/billing");
+
+// A genuine failure is shown, not redirected.
+checkoutResponse = { status: 503, body: { error: "Couldn't confirm your billing status. Try again." } };
+await page.goto(`${BASE}/subscribe`);
+await page.waitForSelector(".plan-cta");
+await page.locator(".plan-cta").click();
+await page.waitForSelector(".error-state", { timeout: 8000 }).catch(() => {});
+check("Stripe unreachable: stays on /subscribe", path(), "/subscribe");
+check(
+  "Stripe unreachable: says so",
+  (await page.locator(".error-state").innerText().catch(() => "")).includes("Couldn't confirm your billing status"),
+  true
+);
+
+await page.unroute("**/api/billing/checkout");
 
 // ================================================================ the rest
 
