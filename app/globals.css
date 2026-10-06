@@ -1806,3 +1806,13 @@ a.button-primary,
 a.button-secondary {
   text-decoration: none;
 }
+
+/* Price rounding */
+
+/* The unrounded figure beside a rounded suggestion: there to check the maths
+   against, so it reads as secondary to the price itself. */
+.pricing-calculated {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}

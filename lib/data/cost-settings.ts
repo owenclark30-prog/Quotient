@@ -1,7 +1,11 @@
 import { supabase } from "@/lib/supabase/client";
 import { getCurrentUserId } from "@/lib/supabase/session";
 import { errorMessage } from "@/lib/errors";
-import { PRICING_DEFAULTS } from "@/lib/pricing";
+import {
+  PRICING_DEFAULTS,
+  ROUNDING_DEFAULT,
+  type RoundingStyle,
+} from "@/lib/pricing";
 
 /** What it costs this agency to deliver, and how cautious it wants its own
  * estimates to be. Nothing here is ever shown to a client, and nothing here
@@ -13,6 +17,8 @@ export type AgencyCostSettings = {
   toolCostMonthly: number;
   /** k, also a fraction. Shaves the estimate before it's ever quoted. */
   conservatismFactor: number;
+  /** How a suggested fee is rounded into a price someone would quote. */
+  roundingStyle: RoundingStyle;
 };
 
 export const DEFAULT_COST_SETTINGS: AgencyCostSettings = {
@@ -20,7 +26,17 @@ export const DEFAULT_COST_SETTINGS: AgencyCostSettings = {
   targetMargin: PRICING_DEFAULTS.targetMargin,
   toolCostMonthly: PRICING_DEFAULTS.toolCostMonthly,
   conservatismFactor: PRICING_DEFAULTS.conservatismFactor,
+  roundingStyle: ROUNDING_DEFAULT,
 };
+
+/** Anything the database could hand back that isn't one of the three styles —
+ * there is a CHECK, but a value that slips past it should round sensibly, not
+ * break the pricing step. */
+function toStyle(value: unknown): RoundingStyle {
+  return value === "off" || value === "clean" || value === "charm"
+    ? value
+    : ROUNDING_DEFAULT;
+}
 
 /** PostgREST emits `numeric` as a JSON number, but a row written by hand or by
  * an older client could still hand back a string. Coerce, and fall back rather
@@ -37,7 +53,9 @@ export async function getCostSettings(): Promise<AgencyCostSettings> {
 
   const { data, error } = await supabase
     .from("agency_cost_settings")
-    .select("hourly_cost, target_margin, tool_cost_monthly, conservatism_factor")
+    .select(
+      "hourly_cost, target_margin, tool_cost_monthly, conservatism_factor, rounding_style"
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -61,6 +79,7 @@ export async function getCostSettings(): Promise<AgencyCostSettings> {
       data.conservatism_factor,
       DEFAULT_COST_SETTINGS.conservatismFactor
     ),
+    roundingStyle: toStyle(data.rounding_style),
   };
 }
 
@@ -89,6 +108,7 @@ export async function updateCostSettings(settings: AgencyCostSettings) {
     target_margin: settings.targetMargin,
     tool_cost_monthly: settings.toolCostMonthly,
     conservatism_factor: settings.conservatismFactor,
+    rounding_style: settings.roundingStyle,
     updated_at: new Date().toISOString(),
   });
 

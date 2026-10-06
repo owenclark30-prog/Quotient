@@ -6,9 +6,24 @@ import {
   type AgencyCostSettings,
 } from "@/lib/data/cost-settings";
 import { updateTierHours } from "@/lib/data/tiers";
-import { defaultHoursForLevel } from "@/lib/pricing";
+import { defaultHoursForLevel, type RoundingStyle } from "@/lib/pricing";
 import { errorMessage } from "@/lib/errors";
 import type { Tier } from "@/lib/supabase/types";
+
+const ROUNDING_OPTIONS: { value: RoundingStyle; label: string }[] = [
+  { value: "off", label: "Off" },
+  { value: "clean", label: "Round to clean number" },
+  { value: "charm", label: "Psychological pricing (ends in 9)" },
+];
+
+/** What each option does, in the same scale lib/pricing.ts applies. */
+const ROUNDING_HINT: Record<RoundingStyle, string> = {
+  off: "Suggested fees are shown exactly as calculated.",
+  clean:
+    "Rounds to the nearest £5 under £100/mo, £25 to £500, £50 to £2,000 and £100 above; setup to £50, or £100 from £2,000. Never below your floor or outside the value range, and the calculated figure is always shown beside it.",
+  charm:
+    "Rounds to the nearest price ending in 9 — £429, £549, £2,499; setup £1,299. Never below your floor or outside the value range, and the calculated figure is always shown beside it.",
+};
 
 /** Hours held as strings so a field can be emptied back to "use the default"
  * rather than being stuck at 0, which is a different thing. */
@@ -55,6 +70,9 @@ export function CostSettings({
   const [hours, setHours] = useState<Record<string, HoursDraft>>(() =>
     Object.fromEntries(tiers.map((tier) => [tier.id, hoursOf(tier)]))
   );
+  const [roundingStyle, setRoundingStyle] = useState<RoundingStyle>(
+    value.roundingStyle
+  );
 
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
@@ -94,6 +112,7 @@ export function CostSettings({
         targetMargin: marginValue / 100,
         toolCostMonthly: toolsValue,
         conservatismFactor: conservatismValue / 100,
+        roundingStyle,
       };
       await updateCostSettings(settings);
 
@@ -204,6 +223,25 @@ export function CostSettings({
           70%, a £1,000/mo estimate is quoted as £700. None of this appears on a
           proposal, and none of it changes your rate card.
         </p>
+      </section>
+
+      <section className="rounding-settings">
+        <label htmlFor="price-rounding">Price rounding</label>
+        <select
+          id="price-rounding"
+          value={roundingStyle}
+          onChange={(e) => {
+            setRoundingStyle(e.target.value as RoundingStyle);
+            touched();
+          }}
+        >
+          {ROUNDING_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <p className="field-hint">{ROUNDING_HINT[roundingStyle]}</p>
       </section>
 
       <section>

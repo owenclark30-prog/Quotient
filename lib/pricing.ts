@@ -127,11 +127,132 @@ export type PricingResult = {
   };
   floor: { monthly: number; setup: number };
   range: { low: number; target: number; high: number } | null;
+  /** The suggested fees: rounded, when rounding is on. This is what "use
+   * suggested fees" charges, so ROI and payback below are measured against it. */
   recommended: { monthly: number; setup: number } | null;
+  /** The same suggestion before rounding — the maths, kept visible beside the
+   * price. Equal to `recommended` when rounding is off or changed nothing. */
+  calculated: { monthly: number; setup: number } | null;
+  /** The rounding style this result was produced with, and the steps it
+   * resolved to. Frozen into a proposal's snapshot with everything else. */
+  rounding: AppliedRounding;
   roi: number | null;
   paybackMonths: number | null;
   verdict: Verdict | null;
 };
+
+/* ----------------------------------------------------------- price rounding */
+
+/**
+ * How a suggested fee is rounded into a price someone would quote.
+ *
+ * off   — exactly as calculated
+ * clean — the nearest multiple of a step that grows with the price: 425, 1250
+ * charm — the nearest price ending in 9 on a similar scale: 429, 1299
+ */
+export type RoundingStyle = "off" | "clean" | "charm";
+
+export type AppliedRounding = {
+  style: RoundingStyle;
+  /** The spacing actually used for each fee — the clean step, or the gap
+   * between charm prices. Null when rounding is off or there was nothing to
+   * round. */
+  monthlyStep: number | null;
+  setupStep: number | null;
+};
+
+/** The default for an agency that has never opened the setting. */
+export const ROUNDING_DEFAULT: RoundingStyle = "clean";
+
+type FeeKind = "monthly" | "setup";
+
+/*
+ * Every band below is half-open: an amount exactly on a boundary takes the
+ * band above, so each amount has exactly one answer. The band is chosen by the
+ * unrounded amount.
+ */
+
+/**
+ * Clean: the step a fee rounds to.
+ * Monthly — under £100: £5 · £100 to under £500: £25 · £500 to under £2,000:
+ * £50 · £2,000 and over: £100. Setup — under £2,000: £50 · £2,000 and over: £100.
+ */
+export function cleanStep(amount: number, kind: FeeKind): number {
+  if (kind === "setup") return amount < 2000 ? 50 : 100;
+  if (amount < 100) return 5;
+  if (amount < 500) return 25;
+  if (amount < 2000) return 50;
+  return 100;
+}
+
+/**
+ * Charm: the gap between prices ending in 9. A price is a multiple of this,
+ * less £1.
+ * Monthly — under £500: £10 (429, 439) · £500 to under £2,000: £50 (549, 599) ·
+ * £2,000 and over: £100 (2,399, 2,499). Setup — under £2,000: £50 (1,249,
+ * 1,299) · £2,000 and over: £100.
+ */
+export function charmStep(amount: number, kind: FeeKind): number {
+  if (kind === "setup") return amount < 2000 ? 50 : 100;
+  if (amount < 500) return 10;
+  if (amount < 2000) return 50;
+  return 100;
+}
+
+/**
+ * The price of the form `n * spacing - offset` nearest `amount` that lies
+ * within [min, max], or null if none does.
+ *
+ * Nearest within the band, rather than nearest and then corrected, so both
+ * guardrails fall out of one rule: when the nearest price is below the floor
+ * this returns the next one up, and when it is above the range the next one
+ * down. Ties round up.
+ */
+export function nearestCandidate(
+  amount: number,
+  spacing: number,
+  offset: number,
+  min: number,
+  max: number = Number.POSITIVE_INFINITY
+): number | null {
+  // Candidates are n * spacing - offset, so the band in terms of n:
+  const nMin = Math.ceil((min + offset) / spacing);
+  const nMax = Number.isFinite(max)
+    ? Math.floor((max + offset) / spacing)
+    : Number.POSITIVE_INFINITY;
+  if (nMin > nMax) return null;
+
+  const nearest = Math.floor((amount + offset) / spacing + 0.5);
+  const n = Math.min(Math.max(nearest, nMin), nMax);
+  const candidate = n * spacing - offset;
+
+  // A price of zero or less is not a price, whatever the band says.
+  return candidate > 0 ? candidate : null;
+}
+
+/**
+ * Round one fee, inside its guardrails.
+ *
+ * Off returns the amount untouched. If no rounded price fits the band, the
+ * unrounded amount is returned too: an honest odd number beats a round one
+ * that breaks the floor or the range.
+ */
+export function roundFee(
+  amount: number,
+  style: RoundingStyle,
+  kind: FeeKind,
+  band: { min: number; max?: number }
+): { price: number; step: number | null } {
+  if (style === "off") return { price: amount, step: null };
+
+  const step =
+    style === "charm" ? charmStep(amount, kind) : cleanStep(amount, kind);
+  // Charm prices are a multiple of the step less £1, so they end in 9.
+  const offset = style === "charm" ? 1 : 0;
+
+  const price = nearestCandidate(amount, step, offset, band.min, band.max);
+  return { price: price ?? amount, step };
+}
 
 const round = (n: number) => Math.round(n);
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -411,8 +532,18 @@ export function calculatePricing(
   inputs: PricingInputs,
   cost: DeliveryCost,
   /** The rate card fee for this tier, for the verdict only. Never written to. */
-  rateCardMonthlyFee?: number
+  rateCardMonthlyFee?: number,
+  /** How to round the suggested fees. Off when omitted, so every caller that
+   * predates rounding gets exactly the numbers it always did. */
+  rounding: RoundingStyle = "off"
 ): PricingResult {
+  /** Rounding as recorded on a result with nothing to round. */
+  const noRounding: AppliedRounding = {
+    style: rounding,
+    monthlyStep: null,
+    setupStep: null,
+  };
+
   const missingFields: string[] = [];
   const levers: Record<LeverKey, number> = {
     missed: 0,
@@ -487,6 +618,8 @@ export function calculatePricing(
       floor,
       range: null,
       recommended: null,
+      calculated: null,
+      rounding: noRounding,
       roi: null,
       paybackMonths: null,
       verdict:
@@ -533,14 +666,35 @@ export function calculatePricing(
       floor,
       range,
       recommended: null,
+      calculated: null,
+      rounding: noRounding,
       roi: null,
       paybackMonths: null,
       verdict,
     };
   }
 
-  const setup = Math.max(floor.setup, 2 * monthly);
-  const surplus = conservative - monthly;
+  const calculated = { monthly, setup: Math.max(floor.setup, 2 * monthly) };
+
+  // Round the monthly fee inside the same guardrails the recommendation
+  // already respects: never below the floor, never outside the range. The
+  // recommendation itself always sits inside that band, so there is always
+  // something to fall back to.
+  const roundedMonthly = roundFee(monthly, rounding, "monthly", {
+    min: Math.max(floor.monthly, range.low),
+    max: range.high,
+  });
+
+  // Setup is re-derived from the *rounded* monthly, then rounded upward only:
+  // it must still clear the setup floor and twice the monthly actually charged.
+  const setupMinimum = Math.max(floor.setup, 2 * roundedMonthly.price);
+  const roundedSetup = roundFee(setupMinimum, rounding, "setup", {
+    min: setupMinimum,
+  });
+
+  const charged = roundedMonthly.price;
+  const setup = roundedSetup.price;
+  const surplus = conservative - charged;
 
   return {
     status: "ok",
@@ -549,8 +703,17 @@ export function calculatePricing(
     value,
     floor,
     range,
-    recommended: { monthly, setup },
-    roi: monthly > 0 ? round2(conservative / monthly) : null,
+    recommended: { monthly: charged, setup },
+    calculated,
+    rounding: {
+      style: rounding,
+      monthlyStep: roundedMonthly.step,
+      setupStep: roundedSetup.step,
+    },
+    // Against the fee that would be charged — the rounded one — the same rule
+    // as a custom fee. Quoting a return on £431 while charging £425 would be
+    // describing a deal nobody was offered.
+    roi: charged > 0 ? round2(conservative / charged) : null,
     // Guarded: a fee at or above the value it creates never pays back.
     paybackMonths: surplus > 0 ? round2(setup / surplus) : null,
     verdict,

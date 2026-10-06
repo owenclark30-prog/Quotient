@@ -71,6 +71,7 @@ export type Database = {
           target_margin: number;
           tool_cost_monthly: number;
           conservatism_factor: number;
+          rounding_style: "off" | "clean" | "charm";
           created_at: string;
           updated_at: string;
         };
@@ -80,6 +81,7 @@ export type Database = {
           target_margin?: number;
           tool_cost_monthly?: number;
           conservatism_factor?: number;
+          rounding_style?: "off" | "clean" | "charm";
           created_at?: string;
           updated_at?: string;
         };
@@ -89,6 +91,7 @@ export type Database = {
           target_margin?: number;
           tool_cost_monthly?: number;
           conservatism_factor?: number;
+          rounding_style?: "off" | "clean" | "charm";
           created_at?: string;
           updated_at?: string;
         };
