@@ -87,10 +87,9 @@ export type FounderSlots = {
   remaining: number;
 };
 
+/** Public: no session needed, so the landing page can ask too. */
 export async function getFounderSlots(): Promise<FounderSlots> {
-  const response = await fetch("/api/billing/founder-slots", {
-    headers: await authHeader(),
-  });
+  const response = await fetch("/api/billing/founder-slots");
 
   if (!response.ok) throw new Error("Couldn't check the founder spots.");
   return (await response.json()) as FounderSlots;

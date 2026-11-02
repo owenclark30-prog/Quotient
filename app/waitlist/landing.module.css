@@ -1,0 +1,844 @@
+/* The public landing page. A CSS module, so nothing here can reach the app's
+   own pages, and the app's palette in globals.css is left alone: this page has
+   its own, defined once below.
+
+   Contrast, on --l-bg unless noted (WCAG AA needs 4.5:1 for body text):
+     --l-text   #F4F7FB  18.6:1
+     --l-muted  #A9B4C6   9.4:1, and 8.5:1 on the card surface
+     --l-accent #2DD4B4  10.5:1, and dark --l-bg text on a teal button 10.5:1
+     proposal card ink #0B1220 on white 18.9:1, its muted #4A5568 7.5:1
+   The dots, glow and streak are decorative and sit behind the text. The UI
+   test measures the rendered page, so a change that breaks this fails there. */
+
+.landing {
+  --l-bg: #070b14;
+  --l-surface: #0e1524;
+  --l-surface-2: #121a2b;
+  --l-line: rgba(255, 255, 255, 0.1);
+  --l-line-strong: #5b6880;
+  --l-text: #f4f7fb;
+  --l-muted: #a9b4c6;
+  --l-accent: #2dd4b4;
+  --l-accent-hover: #5ee3c9;
+  --l-blue: #2f6bff;
+
+  position: relative;
+  /* Above the app's fixed graph-paper backdrop, which this page replaces. */
+  z-index: 1;
+  min-height: 100vh;
+  overflow-x: clip;
+  color: var(--l-text);
+  background-color: var(--l-bg);
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.07) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* The page owns the whole viewport: same ground in the overscroll, and the
+   app nav (shown to anyone signed in) stays out of the way. */
+:global(body):has(.landing) {
+  background: #070b14;
+}
+
+:global(body):has(.landing) :global(.app-nav) {
+  display: none;
+}
+
+:global(html):has(.landing) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :global(html):has(.landing) {
+    scroll-behavior: auto;
+  }
+}
+
+.mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* One focus ring for every link, button and field on the page, in text ink so
+   it shows on the dark ground and around a teal button alike. */
+.landing a:focus-visible,
+.landing button:focus-visible,
+.landing input:focus-visible {
+  outline: 2px solid var(--l-text);
+  outline-offset: 3px;
+}
+
+/* ----------------------------------------------------------------- nav */
+
+.nav {
+  position: relative;
+  z-index: 3;
+}
+
+.navInner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.wordmark {
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: -0.035em;
+  color: var(--l-accent);
+  text-decoration: none;
+  border-radius: 4px;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.navLink {
+  color: var(--l-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.92rem;
+  padding: 8px 10px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.navLink:hover {
+  color: var(--l-text);
+}
+
+.navCta {
+  margin-left: 8px;
+}
+
+/* -------------------------------------------------------------- buttons */
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.buttonPrimary {
+  background: var(--l-accent);
+  color: var(--l-bg);
+  box-shadow: 0 8px 28px rgba(45, 212, 180, 0.22);
+}
+
+.buttonPrimary:hover {
+  background: var(--l-accent-hover);
+}
+
+.buttonPrimary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.buttonGhost {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--l-text);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.buttonGhost:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ----------------------------------------------------------------- main */
+
+/* Two classes: the global `main` rule narrows every page to 720px. */
+.landing .main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 24px;
+  z-index: 2;
+}
+
+/* ----------------------------------------------------------------- hero */
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 48px;
+  padding: 56px 0 72px;
+}
+
+.heroText {
+  position: relative;
+  z-index: 2;
+}
+
+.pill {
+  display: inline-block;
+  margin: 0 0 22px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--l-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.heroTitle {
+  margin: 0 0 20px;
+  font-size: clamp(2.4rem, 5.4vw, 4rem);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  color: var(--l-text);
+}
+
+.heroSub {
+  margin: 0 0 32px;
+  max-width: 34rem;
+  font-size: 1.08rem;
+  color: var(--l-muted);
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.heroNote {
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--l-muted);
+}
+
+/* --------------------------------------------------------------- visual */
+
+.visual {
+  position: relative;
+  min-height: 560px;
+}
+
+/* Soft teal glow behind the cards. */
+.visual::before {
+  content: "";
+  position: absolute;
+  inset: -12% -18%;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    rgba(45, 212, 180, 0.16),
+    transparent 62%
+  );
+  pointer-events: none;
+}
+
+.streak {
+  position: absolute;
+  z-index: 0;
+  left: -30%;
+  right: -12%;
+  top: -6%;
+  bottom: -14%;
+  width: 142%;
+  height: 120%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.card {
+  position: absolute;
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.45),
+    0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--l-text);
+}
+
+.chip {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--l-muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+/* The three overlap only where nothing important is written: the pricing card
+   covers the label end of the proposal's total row, and the rate card only the
+   proposal's padding. */
+
+/* The pricing step, front and left. */
+.priceCard {
+  z-index: 2;
+  top: 262px;
+  left: 8%;
+  width: min(330px, 62%);
+  padding: 22px;
+  background: var(--l-surface);
+  border: 1px solid var(--l-line);
+}
+
+.figures {
+  margin: 0 0 22px;
+  display: grid;
+  gap: 10px;
+}
+
+.figures > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.88rem;
+}
+
+.figures dt {
+  color: var(--l-muted);
+}
+
+.figures dd {
+  margin: 0;
+  color: var(--l-text);
+}
+
+.band {
+  margin-bottom: 18px;
+  font-size: 0.76rem;
+  color: var(--l-muted);
+}
+
+.bandAbove {
+  position: relative;
+  height: 20px;
+}
+
+.floorLabel {
+  position: absolute;
+  bottom: 4px;
+  transform: translateX(-12px);
+  white-space: nowrap;
+}
+
+.bandTrack {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0.1),
+    rgba(255, 255, 255, 0.22)
+  );
+}
+
+.floorMark,
+.targetMark {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.floorMark {
+  width: 2px;
+  height: 18px;
+  background: var(--l-muted);
+  border-radius: 1px;
+}
+
+.targetMark {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--l-accent);
+  box-shadow:
+    0 0 0 3px var(--l-surface),
+    0 0 14px rgba(45, 212, 180, 0.6);
+}
+
+.bandEnds {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.suggested {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--l-line);
+  font-size: 0.88rem;
+  color: var(--l-muted);
+}
+
+.suggestedValue {
+  font-size: 1.5rem;
+  color: var(--l-accent);
+}
+
+/* The proposal it produces, light, behind and to the right. */
+.proposalCard {
+  z-index: 1;
+  top: 0;
+  right: 0;
+  width: min(300px, 56%);
+  padding: 22px 22px 18px;
+  background: #ffffff;
+  color: #0b1220;
+}
+
+.proposalLabel {
+  margin: 0 0 12px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5568;
+}
+
+.proposalClient {
+  margin: 0;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+}
+
+.proposalTier {
+  margin: 0 0 14px;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.proposalLines {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.82rem;
+}
+
+.proposalLines li {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.proposalLines li::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #0b1220;
+  transform: translateY(-2px);
+}
+
+.proposalTotal {
+  display: flex;
+  justify-content: space-between;
+  margin: 0;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+  font-size: 0.85rem;
+  color: #4a5568;
+}
+
+.proposalTotal .mono {
+  color: #0b1220;
+}
+
+/* The rate card it all starts from, small, top left. */
+.rateCard {
+  z-index: 3;
+  top: 56px;
+  left: 0;
+  width: min(250px, 47%);
+  padding: 16px 18px;
+  background: var(--l-surface-2);
+  border: 1px solid var(--l-line);
+}
+
+.rateList {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--l-text);
+}
+
+.rateList li {
+  display: flex;
+  gap: 10px;
+}
+
+.rateTier {
+  flex: none;
+  width: 3.4em;
+  color: var(--l-muted);
+}
+
+/* -------------------------------------------------------------- sections */
+
+.section {
+  position: relative;
+  padding: 56px 0;
+  scroll-margin-top: 16px;
+}
+
+.sectionTitle {
+  margin: 0 0 32px;
+  font-size: clamp(1.8rem, 3.6vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.step {
+  padding: 26px;
+  border-radius: 16px;
+  border: 1px solid var(--l-line);
+  background: rgba(14, 21, 36, 0.85);
+}
+
+.stepNumber {
+  display: block;
+  margin-bottom: 14px;
+  font-size: 0.85rem;
+  color: var(--l-muted);
+}
+
+.stepTitle {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.stepBody {
+  margin: 0;
+  color: var(--l-muted);
+  font-size: 0.95rem;
+}
+
+/* --------------------------------------------------------------- pricing */
+
+.plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  max-width: 820px;
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  padding: 28px;
+  border-radius: 16px;
+  border: 1px solid var(--l-line);
+  background: rgba(14, 21, 36, 0.85);
+}
+
+.planFounder {
+  border-color: rgba(45, 212, 180, 0.45);
+  box-shadow: 0 0 0 1px rgba(45, 212, 180, 0.12),
+    0 24px 60px rgba(45, 212, 180, 0.07);
+}
+
+.planName {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.planPrice {
+  margin: 0 0 18px;
+  color: var(--l-muted);
+}
+
+.planPrice .mono {
+  font-size: 2.4rem;
+  color: var(--l-text);
+}
+
+.planList {
+  margin: 0 0 18px;
+  padding-left: 1.1em;
+  display: grid;
+  gap: 6px;
+  color: var(--l-muted);
+  font-size: 0.95rem;
+}
+
+.spots {
+  min-height: 1.6em;
+  margin: 0 0 16px;
+  font-weight: 500;
+  color: var(--l-text);
+}
+
+.planCta {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.plansNote {
+  margin: 20px 0 0;
+  font-size: 0.9rem;
+  color: var(--l-muted);
+}
+
+/* -------------------------------------------------------------- waitlist */
+
+.waitlistCard {
+  max-width: 560px;
+  padding: 32px;
+  border-radius: 16px;
+  border: 1px solid var(--l-line);
+  background: var(--l-surface);
+}
+
+.waitlistCard .sectionTitle {
+  margin-bottom: 12px;
+}
+
+.waitlistCopy {
+  margin: 0 0 22px;
+  color: var(--l-muted);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Two classes: the global `input[type="text"]` rule is (0,1,1) and would
+   otherwise win over a single-class module selector. */
+.form .field {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--l-line-strong);
+  border-radius: 10px;
+  background: var(--l-bg);
+  color: var(--l-text);
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.form .field::placeholder {
+  color: var(--l-muted);
+}
+
+.submit {
+  margin-top: 4px;
+  width: 100%;
+}
+
+.status {
+  margin: 0;
+  color: var(--l-accent);
+  font-weight: 500;
+}
+
+.bad {
+  margin-top: 6px;
+  color: #fca5a5;
+}
+
+/* ---------------------------------------------------------------- footer */
+
+.footer {
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid var(--l-line);
+  margin-top: 48px;
+}
+
+.footerInner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 24px 40px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  font-size: 0.88rem;
+  color: var(--l-muted);
+}
+
+.footerInner .wordmark {
+  font-size: 1.1rem;
+}
+
+/* Visually hidden, still read aloud. The fields are placeholder-labelled for
+   sighted users; a placeholder is not a label for a screen reader. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- tablet */
+
+@media (max-width: 960px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 56px;
+    padding-top: 32px;
+  }
+
+  .visual {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The streak is drawn for the wide layout; below this it would cut across the
+   stacked cards, so it goes. */
+@media (max-width: 767px) {
+  .streak {
+    display: none;
+  }
+
+  .navSection {
+    display: none;
+  }
+
+  .plans {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section {
+    padding: 44px 0;
+  }
+}
+
+/* ---------------------------------------------------------------- phone */
+
+/* Too narrow to overlap three cards legibly: they stack, in reading order. */
+@media (max-width: 560px) {
+  .navInner {
+    padding: 16px;
+    gap: 8px;
+  }
+
+  .wordmark {
+    font-size: 1.2rem;
+  }
+
+  .navLink {
+    padding: 8px 6px;
+  }
+
+  .landing .main {
+    padding: 0 16px;
+  }
+
+  .footerInner {
+    padding: 24px 16px 36px;
+  }
+
+  .navCta {
+    margin-left: 0;
+    min-height: 40px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .heroActions .button {
+    flex: 1 1 100%;
+  }
+
+  .visual {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card {
+    position: relative;
+    inset: auto;
+    width: 100%;
+  }
+
+  .priceCard {
+    order: 1;
+  }
+
+  .proposalCard {
+    order: 2;
+  }
+
+  .rateCard {
+    order: 3;
+  }
+
+  .waitlistCard,
+  .plan {
+    padding: 24px;
+  }
+}

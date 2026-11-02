@@ -1,16 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
+import { safeNextPath } from "@/lib/landing";
 import { useAuth } from "../components/AuthProvider";
 
+/** Suspense because the form reads the query string: `?mode=signup` opens on
+ * account creation and `?next=` is where to go afterwards, which is how the
+ * landing page sends a new agency on to /subscribe. */
 export default function LoginPage() {
-  const router = useRouter();
-  const { session, loading } = useAuth();
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
+  );
+}
 
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+function LoginForm() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { session, loading } = useAuth();
+  const next = safeNextPath(searchParams.get("next"));
+
+  const [mode, setMode] = useState<"signin" | "signup">(
+    searchParams.get("mode") === "signup" ? "signup" : "signin"
+  );
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -18,8 +34,8 @@ export default function LoginPage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && session) router.replace("/");
-  }, [loading, session, router]);
+    if (!loading && session) router.replace(next);
+  }, [loading, session, router, next]);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -52,7 +68,7 @@ export default function LoginPage() {
         if (signInError) throw signInError;
       }
 
-      router.replace("/");
+      router.replace(next);
     } catch (err) {
       setError(errorMessage(err, "Something went wrong"));
     } finally {
