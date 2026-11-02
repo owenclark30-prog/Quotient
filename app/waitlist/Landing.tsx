@@ -33,11 +33,35 @@ export function Landing({
         <div className={styles.footerInner}>
           <span className={styles.wordmark}>Quotient.</span>
           <span>Pricing, proposals and onboarding for automation agencies.</span>
+          <ul className={styles.footerLinks}>
+            {LEGAL_LINKS.map((link) =>
+              link.href ? (
+                <li key={link.label}>
+                  <Link href={link.href} className={styles.footerLink}>
+                    {link.label}
+                  </Link>
+                </li>
+              ) : (
+                <li key={link.label} className={styles.footerPlaceholder}>
+                  {link.label}
+                </li>
+              )
+            )}
+          </ul>
         </div>
       </footer>
     </div>
   );
 }
+
+/* Placeholders until the pages exist: shown as plain text rather than links to
+   a 404. Set an href and the entry becomes a real link. In waitlist mode the
+   gate redirects every path but this page, so a legal page needs a gate
+   exemption before it can be linked from here. */
+const LEGAL_LINKS: { label: string; href: string | null }[] = [
+  { label: "Privacy", href: null },
+  { label: "Terms", href: null },
+];
 
 // ------------------------------------------------------------------- CTAs
 
@@ -295,23 +319,13 @@ function HeroVisual() {
    The low first control point keeps it under the hero text on the left. */
 const STREAK_PATH = "M -80 714 C 720 712 980 430 1520 -10";
 
-/* Points on that curve (t = 0.2, 0.36, 0.93), chosen where the cards don't
-   cover it. */
-const GLINTS = [
-  [341.8, 680.2],
-  [612.3, 608.7],
-  [1410.4, 80],
-];
-
 /**
  * Decorative: a royal-blue streak across the whole hero, behind the cards. A
- * 2.5px line over a blurred wider copy at 55%, a few static glints, and one
- * spark that runs the length of it every seven seconds.
+ * 2.5px line over a blurred wider copy at 55%, and one spark that runs the
+ * length of it every seven seconds.
  *
  * The viewBox is stretched to the hero (preserveAspectRatio="none"), so
- * anything that must stay round or keep its width uses a non-scaling stroke:
- * the line itself, and the glints, which are zero-length strokes with round
- * caps rather than circles that would stretch into ovals.
+ * the line and the spark use non-scaling strokes to keep their width.
  *
  * The spark is two dashes on the same path, a blue tail with a white head,
  * over a wide faint copy for the glow, so no filter repaints every frame.
@@ -353,26 +367,6 @@ function Streak() {
         strokeWidth="2.5"
         vectorEffect="non-scaling-stroke"
       />
-
-      {GLINTS.map(([x, y]) => (
-        <g key={x}>
-          <path
-            d={`M ${x} ${y} h 0.01`}
-            stroke="#6F9BFF"
-            strokeWidth="9"
-            strokeLinecap="round"
-            opacity="0.35"
-            vectorEffect="non-scaling-stroke"
-          />
-          <path
-            d={`M ${x} ${y} h 0.01`}
-            stroke="#FFFFFF"
-            strokeWidth="3"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </g>
-      ))}
 
       <g className={styles.spark}>
         <path
@@ -470,7 +464,6 @@ function Pricing({ mode }: { mode: LandingMode }) {
           <ul className={styles.planList}>
             <li>For the first 25 agencies</li>
             <li>Locked while you stay subscribed</li>
-            <li>Your rate card set up for you, for the first 10</li>
           </ul>
           {/* Waitlist mode doesn't ask: the gate redirects the route, and
               nobody can claim a spot until the app opens anyway. */}

@@ -114,6 +114,11 @@ async function copyRules(page, label) {
   const totals = await page.locator("[class*='proposalTotal'] > div").evaluateAll((rows) => rows.map((r) => r.innerText.replace(/\s+/g, " ").trim()));
   check(`${label}: proposal monthly then setup`, totals.join(" | "), "Monthly £380 | Setup £760");
   check(`${label}: app nav hidden`, await page.locator(".app-nav").count(), 0);
+  check(`${label}: no rate card setup bullet`, /rate card set up for you/i.test(text), false);
+
+  // Footer: Privacy and Terms are placeholders, not links to a missing page.
+  const legal = await page.locator("footer li").evaluateAll((items) => items.map((li) => `${li.textContent.trim()}:${li.querySelector("a") ? "link" : "text"}`));
+  check(`${label}: footer Privacy and Terms placeholders`, legal.join(" "), "Privacy:text Terms:text");
 }
 
 /**
@@ -279,7 +284,7 @@ async function mobile(base, label) {
   check("live: line leaves through the right edge, high", streak.exitTopRight, true);
   check("live: streak sits behind every card", streak.behindCards, true);
   check("live: full-bleed streak causes no horizontal scroll", streak.noScroll, true);
-  check("live: three glints (halo + core each)", streak.glints, 6);
+  check("live: no static glints on the line", streak.glints, 0);
   check("live: one spark (glow, tail, head)", streak.sparks, 3);
   check("live: spark runs every 7s", streak.animation, "7s");
 
@@ -308,6 +313,35 @@ async function mobile(base, label) {
 
   const markers = await page.evaluate(() => ["floorMark", "targetMark"].map((k) => document.querySelector(`[class*='${k}']`).style.left));
   check("live: floor and target markers", markers.join(" "), "6.8% 33.2%");
+
+  // Pricing cards share the row equally; How it works cards match per row and
+  // the tallest is exactly as tall as its content.
+  const grid = await page.evaluate(() => {
+    const row = document.querySelector("[class*='plans']").getBoundingClientRect();
+    const section = document.getElementById("pricing").getBoundingClientRect();
+    const plans = [...document.querySelectorAll("[class*='plans'] > div")].map((p) => p.getBoundingClientRect().width);
+    const steps = [...document.querySelectorAll("#how ol > li")];
+    const heights = steps.map((s) => Math.round(s.getBoundingClientRect().height));
+    const natural = steps.map((s) => {
+      const st = getComputedStyle(s);
+      const kids = [...s.children];
+      const top = kids[0].getBoundingClientRect().top - parseFloat(getComputedStyle(kids[0]).marginTop);
+      const bottom = Math.max(...kids.map((k) => k.getBoundingClientRect().bottom + parseFloat(getComputedStyle(k).marginBottom)));
+      return Math.round(bottom - top + parseFloat(st.paddingTop) + parseFloat(st.paddingBottom) + parseFloat(st.borderTopWidth) + parseFloat(st.borderBottomWidth));
+    });
+    return {
+      fullRow: Math.abs(row.width - section.width) < 1,
+      equalPlans: Math.abs(plans[0] - plans[1]) < 1,
+      equalSteps: new Set(heights).size === 1,
+      tallestFits: Math.abs(Math.max(...heights) - Math.max(...natural)) <= 2,
+      noMinHeight: steps.every((s) => ["0px", "auto"].includes(getComputedStyle(s).minHeight)),
+    };
+  });
+  check("live: pricing cards span the full row", grid.fullRow, true);
+  check("live: pricing cards equal width", grid.equalPlans, true);
+  check("live: How it works cards equal height in the row", grid.equalSteps, true);
+  check("live: How it works row is as tall as its tallest content", grid.tallestFits, true);
+  check("live: How it works cards have no set height", grid.noMinHeight, true);
 
   await contrast(page, "live");
   await focusRings(page, "live");
@@ -355,7 +389,7 @@ async function mobile(base, label) {
 }
 await mobile(`${LIVE}/waitlist`, "live");
 
-// Reduced motion: the line and glints stay, the spark is gone.
+// Reduced motion: the line stays, the spark is gone.
 {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
   const page = await context.newPage();
@@ -365,12 +399,10 @@ await mobile(`${LIVE}/waitlist`, "live");
     const svg = document.querySelector("svg[class*='streak']");
     return {
       line: getComputedStyle(svg).display !== "none",
-      glints: [...svg.querySelectorAll("path[d$='h 0.01']")].every((p) => p.getBoundingClientRect().width > 0),
       spark: getComputedStyle(svg.querySelector("[class*='spark']")).display,
     };
   });
   check("reduced motion: line still drawn", still.line, true);
-  check("reduced motion: glints still drawn", still.glints, true);
   check("reduced motion: no spark", still.spark, "none");
   await context.close();
 }
