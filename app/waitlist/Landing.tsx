@@ -125,6 +125,8 @@ function Nav({ mode }: { mode: LandingMode }) {
 function Hero({ mode }: { mode: LandingMode }) {
   return (
     <section className={styles.hero} aria-labelledby="hero-title">
+      <Streak />
+
       <div className={styles.heroText}>
         <p className={styles.pill}>For AI and automation agencies</p>
 
@@ -190,10 +192,8 @@ function HeroVisual() {
     <div
       className={styles.visual}
       role="img"
-      aria-label="Example: a client's automation creates £3,624 a month in value. Quotient suggests £380 a month, above the £280 cost floor, and builds the proposal from the agency's rate card."
+      aria-label="Example: a client's automation creates £3,624 a month in value. Quotient suggests £380 a month plus £760 setup, above the £280 cost floor, and builds the proposal from the agency's rate card."
     >
-      <Streak />
-
       <div className={`${styles.card} ${styles.proposalCard}`}>
         <p className={styles.proposalLabel}>Proposal</p>
         <p className={styles.proposalClient}>Demonstration Client</p>
@@ -203,10 +203,16 @@ function HeroVisual() {
             <li key={line}>{line}</li>
           ))}
         </ul>
-        <p className={styles.proposalTotal}>
-          <span>Monthly</span>
-          <span className={styles.mono}>£380</span>
-        </p>
+        <dl className={styles.proposalTotal}>
+          <div>
+            <dt>Monthly</dt>
+            <dd className={styles.mono}>£380</dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd className={styles.mono}>£760</dd>
+          </div>
+        </dl>
       </div>
 
       <div className={`${styles.card} ${styles.priceCard}`}>
@@ -255,12 +261,17 @@ function HeroVisual() {
           </div>
         </div>
 
-        <p className={styles.suggested}>
+        <div className={styles.suggested}>
           <span>Suggested</span>
-          <span className={`${styles.mono} ${styles.suggestedValue}`}>
-            £380/mo
+          <span className={styles.suggestedPrice}>
+            <span className={`${styles.mono} ${styles.suggestedValue}`}>
+              £380/mo
+            </span>{" "}
+            <span className={styles.suggestedSetup}>
+              + <span className={styles.mono}>£760</span> setup
+            </span>
           </span>
-        </p>
+        </div>
       </div>
 
       <div className={`${styles.card} ${styles.rateCard}`}>
@@ -278,40 +289,123 @@ function HeroVisual() {
   );
 }
 
-/** Decorative: a royal-blue streak sweeping up behind the cards, a thin line
- * over a blurred wider copy of itself. */
+/* The streak's one curve, in a viewBox the hero is stretched to. Both ends lie
+   outside the box, so the SVG's own edge cuts the line exactly at the screen
+   edges: it enters bottom left and leaves top right with no gap at either end.
+   The low first control point keeps it under the hero text on the left. */
+const STREAK_PATH = "M -80 714 C 720 712 980 430 1520 -10";
+
+/* Points on that curve (t = 0.2, 0.36, 0.93), chosen where the cards don't
+   cover it. */
+const GLINTS = [
+  [341.8, 680.2],
+  [612.3, 608.7],
+  [1410.4, 80],
+];
+
+/**
+ * Decorative: a royal-blue streak across the whole hero, behind the cards. A
+ * 2.5px line over a blurred wider copy at 55%, a few static glints, and one
+ * spark that runs the length of it every seven seconds.
+ *
+ * The viewBox is stretched to the hero (preserveAspectRatio="none"), so
+ * anything that must stay round or keep its width uses a non-scaling stroke:
+ * the line itself, and the glints, which are zero-length strokes with round
+ * caps rather than circles that would stretch into ovals.
+ *
+ * The spark is two dashes on the same path, a blue tail with a white head,
+ * over a wide faint copy for the glow, so no filter repaints every frame.
+ * With reduced motion it isn't drawn at all; the line stays as it is.
+ */
 function Streak() {
-  const path = "M -40 470 C 140 440 260 360 340 250 S 520 50 660 -10";
   return (
     <svg
       className={styles.streak}
-      viewBox="0 0 600 460"
+      viewBox="0 0 1440 720"
       preserveAspectRatio="none"
       aria-hidden="true"
       focusable="false"
     >
       <defs>
-        <filter id="streak-blur" x="-20%" y="-20%" width="140%" height="140%">
+        <filter
+          id="streak-blur"
+          x="-10%"
+          y="-30%"
+          width="120%"
+          height="160%"
+        >
           <feGaussianBlur stdDeviation="7" />
         </filter>
       </defs>
+
       <path
-        d={path}
+        d={STREAK_PATH}
         fill="none"
         stroke="#2F6BFF"
         strokeWidth="14"
-        strokeLinecap="round"
         opacity="0.55"
         filter="url(#streak-blur)"
       />
       <path
-        d={path}
+        d={STREAK_PATH}
         fill="none"
         stroke="#2F6BFF"
         strokeWidth="2.5"
-        strokeLinecap="round"
         vectorEffect="non-scaling-stroke"
       />
+
+      {GLINTS.map(([x, y]) => (
+        <g key={x}>
+          <path
+            d={`M ${x} ${y} h 0.01`}
+            stroke="#6F9BFF"
+            strokeWidth="9"
+            strokeLinecap="round"
+            opacity="0.35"
+            vectorEffect="non-scaling-stroke"
+          />
+          <path
+            d={`M ${x} ${y} h 0.01`}
+            stroke="#FFFFFF"
+            strokeWidth="3"
+            strokeLinecap="round"
+            vectorEffect="non-scaling-stroke"
+          />
+        </g>
+      ))}
+
+      <g className={styles.spark}>
+        <path
+          className={styles.sparkGlow}
+          d={STREAK_PATH}
+          pathLength={1000}
+          fill="none"
+          stroke="#8FB0FF"
+          strokeWidth="10"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          className={styles.sparkTail}
+          d={STREAK_PATH}
+          pathLength={1000}
+          fill="none"
+          stroke="#6F9BFF"
+          strokeWidth="3"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+        <path
+          className={styles.sparkHead}
+          d={STREAK_PATH}
+          pathLength={1000}
+          fill="none"
+          stroke="#FFFFFF"
+          strokeWidth="3"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
+      </g>
     </svg>
   );
 }

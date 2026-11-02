@@ -185,6 +185,7 @@
 /* ----------------------------------------------------------------- hero */
 
 .hero {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
   align-items: center;
@@ -242,7 +243,7 @@
 
 .visual {
   position: relative;
-  min-height: 560px;
+  min-height: 600px;
 }
 
 /* Soft teal glow behind the cards. */
@@ -259,17 +260,69 @@
   pointer-events: none;
 }
 
+/* Full bleed: as wide as the viewport whatever the content column, so the
+   line runs edge to edge. Its overflow stays hidden on purpose: the path's
+   ends lie outside the viewBox, and this edge is what cuts them. */
 .streak {
   position: absolute;
   z-index: 0;
-  left: -30%;
-  right: -12%;
-  top: -6%;
-  bottom: -14%;
-  width: 142%;
-  height: 120%;
-  overflow: visible;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  height: 100%;
+  margin-left: -50vw;
+  overflow: hidden;
   pointer-events: none;
+}
+
+/* One spark, once every seven seconds: about 2.6s crossing, then a rest. The
+   path is measured as 1000 units (pathLength), so these lengths hold at any
+   width. The tail is 70 long with a 22-long white head at its leading end;
+   both start just before the path and finish just past it. */
+.sparkGlow,
+.sparkTail {
+  stroke-dasharray: 70 2000;
+  stroke-dashoffset: 70;
+  animation: sparkTail 7s infinite;
+}
+
+.sparkGlow {
+  opacity: 0.22;
+}
+
+.sparkHead {
+  stroke-dasharray: 22 2000;
+  stroke-dashoffset: 22;
+  animation: sparkHead 7s infinite;
+}
+
+@keyframes sparkTail {
+  0% {
+    stroke-dashoffset: 70;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  38%,
+  100% {
+    stroke-dashoffset: -1000;
+  }
+}
+
+@keyframes sparkHead {
+  0% {
+    stroke-dashoffset: 22;
+    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+  }
+  38%,
+  100% {
+    stroke-dashoffset: -1048;
+  }
+}
+
+/* Reduced motion: the line and glints stay, the spark is never drawn. */
+@media (prefers-reduced-motion: reduce) {
+  .spark {
+    display: none;
+  }
 }
 
 .card {
@@ -304,14 +357,13 @@
   font-weight: 500;
 }
 
-/* The three overlap only where nothing important is written: the pricing card
-   covers the label end of the proposal's total row, and the rate card only the
-   proposal's padding. */
+/* The three overlap only where nothing is written: the pricing card covers the
+   proposal's bottom padding, and the rate card only its side padding. */
 
 /* The pricing step, front and left. */
 .priceCard {
   z-index: 2;
-  top: 262px;
+  top: 302px;
   left: 8%;
   width: min(330px, 62%);
   padding: 22px;
@@ -404,6 +456,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
+  gap: 12px;
   margin: 0;
   padding-top: 14px;
   border-top: 1px solid var(--l-line);
@@ -411,9 +464,19 @@
   color: var(--l-muted);
 }
 
+.suggestedPrice {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .suggestedValue {
-  font-size: 1.5rem;
+  font-size: 1.35rem;
   color: var(--l-accent);
+}
+
+.suggestedSetup {
+  color: var(--l-muted);
+  font-size: 0.82rem;
 }
 
 /* The proposal it produces, light, behind and to the right. */
@@ -475,8 +538,8 @@
 }
 
 .proposalTotal {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  gap: 4px;
   margin: 0;
   padding-top: 12px;
   border-top: 1px solid #e2e8f0;
@@ -484,7 +547,13 @@
   color: #4a5568;
 }
 
-.proposalTotal .mono {
+.proposalTotal > div {
+  display: flex;
+  justify-content: space-between;
+}
+
+.proposalTotal dd {
+  margin: 0;
   color: #0b1220;
 }
 
@@ -749,6 +818,14 @@
     width: 100%;
     max-width: 560px;
     margin: 0 auto;
+  }
+
+  /* Stacked, the hero is tall and the text sits on top: the streak keeps to
+     the lower part, behind the cards, rather than cutting through the H1. */
+  .streak {
+    top: auto;
+    bottom: 0;
+    height: 700px;
   }
 
   .steps {

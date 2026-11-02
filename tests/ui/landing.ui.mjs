@@ -110,6 +110,9 @@ async function copyRules(page, label) {
   check(`${label}: cancel note`, await page.getByText("Cancel anytime from your billing page.").count(), 1);
   check(`${label}: three steps`, await page.locator("#how ol > li").count(), 3);
   check(`${label}: suggested price on the card`, await page.getByText("£380/mo", { exact: true }).count(), 1);
+  check(`${label}: suggested line`, (await page.locator("[class*='suggestedPrice']").innerText()).replace(/\s+/g, " ").trim(), "£380/mo + £760 setup");
+  const totals = await page.locator("[class*='proposalTotal'] > div").evaluateAll((rows) => rows.map((r) => r.innerText.replace(/\s+/g, " ").trim()));
+  check(`${label}: proposal monthly then setup`, totals.join(" | "), "Monthly £380 | Setup £760");
   check(`${label}: app nav hidden`, await page.locator(".app-nav").count(), 0);
 }
 
@@ -243,11 +246,65 @@ async function mobile(base, label) {
   check("live: streak is aria-hidden", await page.locator("svg[class*='streak']").getAttribute("aria-hidden"), "true");
   check("live: streak shown on desktop", await page.locator("svg[class*='streak']").isVisible(), true);
 
-  const overlap = await page.evaluate(() => {
-    const [proposal, price] = [...document.querySelectorAll("[class*='visual'] > [class*='card']")].map((c) => c.getBoundingClientRect());
-    return price.left < proposal.right && price.top < proposal.bottom;
+  // One continuous line, edge to edge: the SVG spans the viewport, and the
+  // path crosses its left and right edges inside the box, so it enters and
+  // leaves through the sides of the screen with no gap at either end.
+  const streak = await page.evaluate(() => {
+    const svg = document.querySelector("svg[class*='streak']");
+    const line = svg.querySelector("path[stroke-width='2.5']");
+    const box = svg.getBoundingClientRect();
+    const total = line.getTotalLength();
+    const pts = Array.from({ length: 401 }, (_, i) => line.getPointAtLength((total * i) / 400));
+    const crossing = (x) => { const i = pts.findIndex((p) => p.x >= x); return i > 0 ? pts[i] : null; };
+    const enter = crossing(0), exit = crossing(1440);
+    const hero = svg.parentElement.getBoundingClientRect();
+    const cards = [...document.querySelectorAll("[class*='visual'] > [class*='card']")];
+    return {
+      fullWidth: box.left <= 0.5 && box.right >= document.documentElement.clientWidth - 0.5,
+      ends: pts[0].x < 0 && pts[pts.length - 1].x > 1440,
+      enterBottomLeft: !!enter && enter.y > 600 && enter.y < 720,
+      exitTopRight: !!exit && exit.y > 0 && exit.y < 120,
+      spansHero: Math.abs(box.top - hero.top) < 1 && Math.abs(box.bottom - hero.bottom) < 1,
+      behindCards: cards.every((c) => Number(getComputedStyle(c).zIndex) > Number(getComputedStyle(svg).zIndex)),
+      noScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
+      glints: svg.querySelectorAll("path[d$='h 0.01']").length,
+      sparks: svg.querySelectorAll("[class*='spark'] path").length,
+      animation: getComputedStyle(svg.querySelector("[class*='sparkHead']")).animationDuration,
+    };
   });
-  check("live: cards overlap on desktop", overlap, true);
+  check("live: streak spans the full viewport width", streak.fullWidth, true);
+  check("live: streak spans the hero height", streak.spansHero, true);
+  check("live: path ends lie outside the viewBox", streak.ends, true);
+  check("live: line enters through the left edge, low", streak.enterBottomLeft, true);
+  check("live: line leaves through the right edge, high", streak.exitTopRight, true);
+  check("live: streak sits behind every card", streak.behindCards, true);
+  check("live: full-bleed streak causes no horizontal scroll", streak.noScroll, true);
+  check("live: three glints (halo + core each)", streak.glints, 6);
+  check("live: one spark (glow, tail, head)", streak.sparks, 3);
+  check("live: spark runs every 7s", streak.animation, "7s");
+
+  // Every card overlaps at least one other, and none covers another's text.
+  const overlap = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll("[class*='visual'] > [class*='card']")];
+    const boxes = cards.map((c) => c.getBoundingClientRect());
+    const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    const each = boxes.every((a, i) => boxes.some((b, j) => i !== j && hit(a, b)));
+    // A text element of a lower card is covered if a higher card's box hits it.
+    const z = (el) => Number(getComputedStyle(el).zIndex);
+    const covered = [];
+    cards.forEach((card) => {
+      card.querySelectorAll("dt, dd, li, p, span").forEach((t) => {
+        if (![...t.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) return;
+        const r = t.getBoundingClientRect();
+        cards.forEach((other, k) => {
+          if (other !== card && z(other) > z(card) && hit(r, boxes[k])) covered.push(t.textContent.trim());
+        });
+      });
+    });
+    return { each, covered: covered.join(", ") || "none" };
+  });
+  check("live: every card overlaps another on desktop", overlap.each, true);
+  check("live: no card text is covered by another card", overlap.covered, "none");
 
   const markers = await page.evaluate(() => ["floorMark", "targetMark"].map((k) => document.querySelector(`[class*='${k}']`).style.left));
   check("live: floor and target markers", markers.join(" "), "6.8% 33.2%");
@@ -291,10 +348,32 @@ async function mobile(base, label) {
   const page = await newPage(800, 1000);
   await page.goto(`${LIVE}/waitlist`);
   check("live 800px: streak shown", await page.locator("svg[class*='streak']").isVisible(), true);
+  check("live 800px: streak stays below the headline", await page.evaluate(() =>
+    document.querySelector("svg[class*='streak']").getBoundingClientRect().top >= document.querySelector("h1").getBoundingClientRect().bottom), true);
   check("live 800px: no horizontal scroll", await page.evaluate(() => document.documentElement.scrollWidth <= 800), true);
   await page.context().close();
 }
 await mobile(`${LIVE}/waitlist`, "live");
+
+// Reduced motion: the line and glints stay, the spark is gone.
+{
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
+  await page.route("**/api/billing/founder-slots", (route) => route.fulfill({ json: slots }));
+  await page.goto(`${LIVE}/waitlist`);
+  const still = await page.evaluate(() => {
+    const svg = document.querySelector("svg[class*='streak']");
+    return {
+      line: getComputedStyle(svg).display !== "none",
+      glints: [...svg.querySelectorAll("path[d$='h 0.01']")].every((p) => p.getBoundingClientRect().width > 0),
+      spark: getComputedStyle(svg.querySelector("[class*='spark']")).display,
+    };
+  });
+  check("reduced motion: line still drawn", still.line, true);
+  check("reduced motion: glints still drawn", still.glints, true);
+  check("reduced motion: no spark", still.spark, "none");
+  await context.close();
+}
 
 // ============================================================ waitlist mode
 
