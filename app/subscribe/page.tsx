@@ -85,12 +85,12 @@ function Subscribe() {
       <p className="subtitle">
         {lapsed
           ? "Your subscription isn't active. Start it again below."
-          : "Quotient is a subscription. Pick up where you left off."}
+          : "Worthmark is a subscription. Pick up where you left off."}
       </p>
 
       {cancelled && (
         <div className="warning-banner">
-          Checkout cancelled — nothing was charged.
+          Checkout cancelled. Nothing was charged.
         </div>
       )}
 
@@ -110,8 +110,8 @@ function Subscribe() {
               <strong>
                 {slots.remaining} of {slots.limit} founder{" "}
                 {slots.remaining === 1 ? "spot" : "spots"} left
-              </strong>{" "}
-              — locked at {PLAN_PRICE_LABEL.founder} for as long as your
+              </strong>
+              , locked at {PLAN_PRICE_LABEL.founder} for as long as your
               subscription stays active.
             </p>
           )}

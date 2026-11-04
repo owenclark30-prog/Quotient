@@ -2,64 +2,68 @@
   color-scheme: dark;
   accent-color: var(--accent-bright);
 
-  --bg: #0d0f0e;
-  --surface: #1a1d1b;
-  --border: #2a2e2c;
-  /* Functional boundaries (inputs, hover) need 3:1; --border is decorative. */
-  --border-strong: #626966;
-  --text: #e8eae7;
-  --text-muted: #8a8f8c;
+  /* Worthmark midnight. Contrast on --bg (AA needs 4.5:1 for body text):
+     --text 18.9:1, --text-muted 8.2:1, --accent 10.8:1, --warning 7.4:1.
+     On --surface the same pairs are 17.7, 7.7, 10.1 and 7.0. */
+  --bg: #02070a;
+  --surface: #0a1117;
+  /* Decorative edges. Inputs and other functional boundaries need 3:1, so
+     they take --border-strong (3.7:1 on --bg, 3.5:1 on --surface). */
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: #5e6b78;
+  --text: #f5f7fa;
+  --text-muted: #9aa6b4;
 
-  /* Petronas teal. Bright enough to read as itself on the dark ground
-     (10.04:1), so it doubles as link/border colour — but that same brightness
-     means white text on top of it fails (1.92:1). Filled surfaces take
-     --accent-ink, near-black, at 10.2:1. */
-  --accent: #00d2be;
-  --accent-hover: #3ddad0;
-  --accent-ink: #07120f;
-  --accent-bright: #00d2be;
+  /* Teal. Bright enough to read as itself on the dark ground, so it doubles
+     as link and border colour. White text on top of it fails, so filled
+     surfaces take --accent-ink, midnight, at 10.8:1. */
+  --accent: #2dd4b4;
+  --accent-hover: #5ee3c9;
+  --accent-ink: #02070a;
+  --accent-bright: #2dd4b4;
   --border-selected: var(--accent-bright);
+
+  --secondary: #0297de;
+  /* Warnings and the cost floor. */
+  --warning: #fc734d;
 
   --danger: #f87171;
   --danger-hover: #fca5a5;
 
-  /* Backdrop texture. Worst case is muted text landing on a line: 5.53:1,
-     against 5.85:1 on the flat ground — so the grid costs almost no contrast.
-     Raising this alpha spends that headroom; 0.06 is about the limit. */
-  --grid-line: rgba(255, 255, 255, 0.032);
+  --font-body: var(--font-sans), system-ui, -apple-system, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
+  --font-numeric: var(--font-mono), ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* App screens are plain midnight: no texture, no glow. The landing hero is
+   the one place with a background of its own. */
 body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
-    Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
 }
 
-/* Graph-paper texture behind everything. Fixed, so it stays put on scroll and
-   fills the empty lower half of a short page instead of flat black. */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background-image: linear-gradient(
-      to right,
-      var(--grid-line) 1px,
-      transparent 1px
-    ),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: 34px 34px;
+/* The wordmark, wherever it appears (see app/components/Wordmark.tsx). */
+.wordmark {
+  font-family: var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--text);
+  white-space: nowrap;
 }
 
-/* Both lift above the grid. The nav outranks main so its dropdown isn't
-   painted over by page content further down the document. */
+.wordmark-stop {
+  color: var(--accent);
+}
+
+/* The nav outranks main so its dropdown isn't painted over by page content
+   further down the document. */
 main {
   position: relative;
   z-index: 1;
@@ -68,9 +72,15 @@ main {
   padding: 48px 24px 96px;
 }
 
+h1,
+h2,
+h3 {
+  font-weight: 700;
+}
+
 h1 {
   font-size: 1.5rem;
-  font-weight: 600;
+  letter-spacing: -0.04em;
   margin: 0 0 4px;
 }
 
@@ -179,8 +189,7 @@ input[type="text"] {
 
 .app-nav-brand {
   color: var(--text);
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.05rem;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -312,25 +321,6 @@ input[type="text"] {
   margin-bottom: 8px;
 }
 
-/* A soft pool of accent behind the wordmark. Decorative and behind the text,
-   so it carries no contrast requirement of its own. */
-.hero::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(560px, 100%);
-  aspect-ratio: 2 / 1;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 210, 190, 0.13),
-    transparent 70%
-  );
-  pointer-events: none;
-}
-
 .hero > * {
   position: relative;
   z-index: 1;
@@ -338,10 +328,7 @@ input[type="text"] {
 
 .hero-mark {
   font-size: clamp(3rem, 11vw, 5rem);
-  font-weight: 700;
-  letter-spacing: -0.035em;
   line-height: 1;
-  color: var(--accent-bright);
   margin: 0;
 }
 
@@ -479,6 +466,11 @@ input[type="text"] {
 
 .auth-main {
   max-width: 380px;
+}
+
+.auth-mark {
+  font-size: 1.75rem;
+  margin-bottom: 6px;
 }
 
 .auth-form section {
@@ -757,9 +749,9 @@ input[type="password"] {
 .warning-banner {
   font-size: 0.85rem;
   line-height: 1.4;
-  color: #fcd34d;
-  background: #2a2415;
-  border: 1px solid #7f6b22;
+  color: var(--warning);
+  background: #1f0f0a;
+  border: 1px solid #8a3e29;
   border-radius: 8px;
   padding: 12px 14px;
   margin-bottom: 24px;
@@ -1003,8 +995,7 @@ input[type="password"] {
   }
 
   .no-print,
-  .app-nav,
-  body::before {
+  .app-nav {
     display: none !important;
   }
 
@@ -1589,7 +1580,7 @@ input[type="password"] {
 }
 
 .price-verdict-warn {
-  border-left-color: #d9a94a;
+  border-left-color: var(--warning);
 }
 
 .price-verdict-bad {
@@ -1600,7 +1591,7 @@ input[type="password"] {
   margin: 8px 0 0;
   font-size: 0.84rem;
   line-height: 1.5;
-  color: #e0b968;
+  color: var(--warning);
 }
 
 .fee-choice {
@@ -1815,4 +1806,37 @@ a.button-secondary {
   font-size: 0.82rem;
   font-weight: 500;
   color: var(--text-muted);
+}
+
+/* Type roles */
+
+/* Labels, numbers and status pills: the only places the mono face is used. */
+label,
+.stat-label,
+.stat-value,
+.pricing-value,
+.price-headline-label,
+.price-headline-value,
+.price-range-label,
+.price-range-value,
+.plan-price,
+.proposal-label,
+.proposal-founding-tag,
+.starter-card-tag,
+.step-day,
+.founder-badge {
+  font-family: var(--font-numeric);
+  /* The mono face is loaded at 400 and 500 only; anything heavier would be
+     synthesised. Last in the file so it wins over each element's own rule. */
+  font-weight: 500;
+}
+
+/* A <label> that wraps content, not just names a field: checkbox rows (a
+   lever's title and description, a tier name) and the controls nested inside
+   field labels stay in the body face. */
+label.checkbox-item,
+label input,
+label select,
+label textarea {
+  font-family: var(--font-body);
 }

@@ -4,7 +4,8 @@
  * Checkout success/cancel and the portal return all have to land on whichever
  * deployment the request came from, or a deploy preview sends its testers to
  * production. So: derive from the request, never from a build-time constant.
- * There is deliberately no NEXT_PUBLIC_SITE_URL anywhere in this project.
+ * NEXT_PUBLIC_SITE_URL (lib/site-url.ts) exists for metadata and auth emails;
+ * it must never be used here, because it is the same value on every deploy.
  */
 
 function parseOrigin(value: string | null | undefined): URL | null {
