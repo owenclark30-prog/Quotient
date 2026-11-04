@@ -6,20 +6,15 @@ import { getFounderSlots, type FounderSlots } from "@/lib/data/billing";
 import { joinWaitlist } from "@/lib/data/waitlist";
 import { errorMessage } from "@/lib/errors";
 import { SIGNUP_PATH, type LandingMode } from "@/lib/landing";
+import { Wordmark } from "../components/Wordmark";
 import styles from "./landing.module.css";
 
 /** Public. Deliberately not wrapped in RequireAuth: this is the one page anyone
  * can reach. In waitlist mode it reads nothing; live, it reads only the public
  * founder-spot count. */
-export function Landing({
-  mode,
-  fontClassName,
-}: {
-  mode: LandingMode;
-  fontClassName: string;
-}) {
+export function Landing({ mode }: { mode: LandingMode }) {
   return (
-    <div className={`${styles.landing} ${fontClassName}`} id="top">
+    <div className={styles.landing} id="top">
       <Nav mode={mode} />
 
       <main className={styles.main}>
@@ -31,8 +26,9 @@ export function Landing({
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <span className={styles.wordmark}>Quotient.</span>
+          <Wordmark className={styles.wordmark} />
           <span>Pricing, proposals and onboarding for automation agencies.</span>
+          <span className={styles.maker}>A Slipway product</span>
           <ul className={styles.footerLinks}>
             {LEGAL_LINKS.map((link) =>
               link.href ? (
@@ -113,8 +109,8 @@ function Nav({ mode }: { mode: LandingMode }) {
   return (
     <header className={styles.nav}>
       <div className={styles.navInner}>
-        <a href="#top" className={styles.wordmark}>
-          Quotient.
+        <a href="#top" className={styles.wordmarkLink}>
+          <Wordmark className={styles.wordmark} />
         </a>
 
         <nav aria-label="Main" className={styles.navLinks}>
@@ -149,8 +145,6 @@ function Nav({ mode }: { mode: LandingMode }) {
 function Hero({ mode }: { mode: LandingMode }) {
   return (
     <section className={styles.hero} aria-labelledby="hero-title">
-      <Streak />
-
       <div className={styles.heroText}>
         <p className={styles.pill}>For AI and automation agencies</p>
 
@@ -159,7 +153,7 @@ function Hero({ mode }: { mode: LandingMode }) {
         </h1>
 
         <p className={styles.heroSub}>
-          Enter what the automation recovers for the client. Quotient prices
+          Enter what the automation recovers for the client. Worthmark prices
           it, checks it against your delivery costs so you never quote below
           margin, and builds the proposal and onboarding docs.
         </p>
@@ -216,7 +210,7 @@ function HeroVisual() {
     <div
       className={styles.visual}
       role="img"
-      aria-label="Example: a client's automation creates £3,624 a month in value. Quotient suggests £380 a month plus £760 setup, above the £280 cost floor, and builds the proposal from the agency's rate card."
+      aria-label="Example: a client's automation creates £3,624 a month in value. Worthmark suggests £380 a month plus £760 setup, above the £280 cost floor, and builds the proposal from the agency's rate card."
     >
       <div className={`${styles.card} ${styles.proposalCard}`}>
         <p className={styles.proposalLabel}>Proposal</p>
@@ -310,97 +304,6 @@ function HeroVisual() {
         </ul>
       </div>
     </div>
-  );
-}
-
-/* The streak's one curve, in a viewBox the hero is stretched to. Both ends lie
-   outside the box, so the SVG's own edge cuts the line exactly at the screen
-   edges: it enters bottom left and leaves top right with no gap at either end.
-   The low first control point keeps it under the hero text on the left. */
-const STREAK_PATH = "M -80 714 C 720 712 980 430 1520 -10";
-
-/**
- * Decorative: a royal-blue streak across the whole hero, behind the cards. A
- * 2.5px line over a blurred wider copy at 55%, and one spark that runs the
- * length of it every seven seconds.
- *
- * The viewBox is stretched to the hero (preserveAspectRatio="none"), so
- * the line and the spark use non-scaling strokes to keep their width.
- *
- * The spark is two dashes on the same path, a blue tail with a white head,
- * over a wide faint copy for the glow, so no filter repaints every frame.
- * With reduced motion it isn't drawn at all; the line stays as it is.
- */
-function Streak() {
-  return (
-    <svg
-      className={styles.streak}
-      viewBox="0 0 1440 720"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      focusable="false"
-    >
-      <defs>
-        <filter
-          id="streak-blur"
-          x="-10%"
-          y="-30%"
-          width="120%"
-          height="160%"
-        >
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
-      </defs>
-
-      <path
-        d={STREAK_PATH}
-        fill="none"
-        stroke="#2F6BFF"
-        strokeWidth="14"
-        opacity="0.55"
-        filter="url(#streak-blur)"
-      />
-      <path
-        d={STREAK_PATH}
-        fill="none"
-        stroke="#2F6BFF"
-        strokeWidth="2.5"
-        vectorEffect="non-scaling-stroke"
-      />
-
-      <g className={styles.spark}>
-        <path
-          className={styles.sparkGlow}
-          d={STREAK_PATH}
-          pathLength={1000}
-          fill="none"
-          stroke="#8FB0FF"
-          strokeWidth="10"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          className={styles.sparkTail}
-          d={STREAK_PATH}
-          pathLength={1000}
-          fill="none"
-          stroke="#6F9BFF"
-          strokeWidth="3"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-        <path
-          className={styles.sparkHead}
-          d={STREAK_PATH}
-          pathLength={1000}
-          fill="none"
-          stroke="#FFFFFF"
-          strokeWidth="3"
-          strokeLinecap="round"
-          vectorEffect="non-scaling-stroke"
-        />
-      </g>
-    </svg>
   );
 }
 

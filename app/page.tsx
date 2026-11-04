@@ -7,6 +7,7 @@ import { getServices } from "@/lib/data/services";
 import { getTiers } from "@/lib/data/tiers";
 import { errorMessage } from "@/lib/errors";
 import { RequireAuth } from "./components/RequireAuth";
+import { Wordmark } from "./components/Wordmark";
 
 type Proposal = Awaited<ReturnType<typeof getProposals>>[number];
 
@@ -82,7 +83,9 @@ function Home() {
   return (
     <main className="home">
       <section className="hero">
-        <h1 className="hero-mark">Quotient.</h1>
+        <h1 className="hero-mark">
+          <Wordmark />
+        </h1>
         <p className="hero-motto">
           Everything your automation agency runs on.
         </p>
@@ -105,7 +108,7 @@ function Home() {
       {rateCardEmpty && (
         <div className="empty-state">
           Your rate card is empty.{" "}
-          <Link href="/rate-card">Build it first</Link> — add your services,
+          <Link href="/rate-card">Build it first</Link>: add your services,
           group them into tiers, and set your fees.
         </div>
       )}
@@ -175,7 +178,7 @@ function Stat({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="stat">
       <span className="stat-label">{label}</span>
-      <span className="stat-value">{value === null ? "—" : value}</span>
+      <span className="stat-value">{value === null ? "–" : value}</span>
     </div>
   );
 }

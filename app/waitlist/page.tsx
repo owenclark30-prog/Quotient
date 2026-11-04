@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { landingMode } from "@/lib/landing";
 import { Landing } from "./Landing";
 
@@ -15,34 +14,28 @@ import { Landing } from "./Landing";
  */
 export const dynamic = "force-dynamic";
 
+const TITLE = "Worthmark. Price every client from their own numbers";
+const DESCRIPTION =
+  "Pricing, proposals and onboarding docs for AI and automation agencies, built from what the automation recovers for each client.";
+
 export const metadata: Metadata = {
-  title: "Quotient. Price every client from their own numbers",
-  description:
-    "Pricing, proposals and onboarding docs for AI and automation agencies, built from what the automation recovers for each client.",
+  title: TITLE,
+  description: DESCRIPTION,
+  // The canonical address is the front door, whichever path served it.
+  alternates: { canonical: "/" },
+  // Next replaces these objects rather than merging them with the layout's,
+  // so each is restated whole.
+  openGraph: {
+    type: "website",
+    siteName: "Worthmark",
+    locale: "en_GB",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: "/",
+  },
+  twitter: { card: "summary", title: TITLE, description: DESCRIPTION },
 };
 
-/* Self-hosted by next/font at build time: no request to Google from the
-   visitor's browser, and no layout shift while the font loads. Scoped to this
-   page through CSS variables, so the app's own type is untouched. */
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "700", "800"],
-  variable: "--font-jakarta",
-  display: "swap",
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-plex-mono",
-  display: "swap",
-});
-
 export default function WaitlistPage() {
-  return (
-    <Landing
-      mode={landingMode(process.env.LAUNCH_MODE)}
-      fontClassName={`${jakarta.variable} ${plexMono.variable}`}
-    />
-  );
+  return <Landing mode={landingMode(process.env.LAUNCH_MODE)} />;
 }

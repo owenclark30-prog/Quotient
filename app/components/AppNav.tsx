@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { useAuth } from "./AuthProvider";
+import { Wordmark } from "./Wordmark";
 
 type NavItem = { href: string; label: string };
 type NavEntry =
@@ -73,7 +74,7 @@ export function AppNav() {
     <header className="app-nav">
       <div className="app-nav-inner">
         <Link href="/" className="app-nav-brand">
-          Quotient.
+          <Wordmark />
         </Link>
 
         <nav className="app-nav-links">

@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { errorMessage } from "@/lib/errors";
 import { safeNextPath } from "@/lib/landing";
+import { siteHref } from "@/lib/site-url";
 import { useAuth } from "../components/AuthProvider";
+import { Wordmark } from "../components/Wordmark";
 
 /** Suspense because the form reads the query string: `?mode=signup` opens on
  * account creation and `?next=` is where to go afterwards, which is how the
@@ -48,6 +50,15 @@ function LoginForm() {
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
+          // Where the confirmation email's link lands: sign-in, then on to
+          // wherever this sign-up was headed. Supabase only honours it if the
+          // address is in the project's allowed redirect URLs; otherwise it
+          // falls back to the project's Site URL.
+          options: {
+            emailRedirectTo: siteHref(
+              `/login?next=${encodeURIComponent(next)}`
+            ),
+          },
         });
         if (signUpError) throw signUpError;
 
@@ -78,7 +89,9 @@ function LoginForm() {
 
   return (
     <main className="auth-main">
-      <h1>Quotient.</h1>
+      <h1 className="auth-mark">
+        <Wordmark />
+      </h1>
       <p className="subtitle">
         {mode === "signin" ? "Sign in to your account" : "Create an account"}
       </p>

@@ -1,40 +1,35 @@
 /* The public landing page. A CSS module, so nothing here can reach the app's
-   own pages, and the app's palette in globals.css is left alone: this page has
-   its own, defined once below.
+   own pages. The palette matches the app's (globals.css); it is restated here
+   so this page reads on its own.
 
    Contrast, on --l-bg unless noted (WCAG AA needs 4.5:1 for body text):
-     --l-text   #F4F7FB  18.6:1
-     --l-muted  #A9B4C6   9.4:1, and 8.5:1 on the card surface
-     --l-accent #2DD4B4  10.5:1, and dark --l-bg text on a teal button 10.5:1
+     --l-text    #F5F7FA  18.9:1, and 17.7:1 on the card surface
+     --l-muted   #9AA6B4   8.2:1, and 7.7:1 on the card surface
+     --l-accent  #2DD4B4  10.8:1, and midnight text on a teal button 10.8:1
+     --l-warning #FC734D   7.0:1 on the card surface
      proposal card ink #0B1220 on white 18.9:1, its muted #4A5568 7.5:1
-   The dots, glow and streak are decorative and sit behind the text. The UI
-   test measures the rendered page, so a change that breaks this fails there. */
+   The hero glow is decorative and sits behind the cards. The UI test measures
+   the rendered page, so a change that breaks this fails there. */
 
 .landing {
-  --l-bg: #070b14;
-  --l-surface: #0e1524;
-  --l-surface-2: #121a2b;
+  --l-bg: #02070a;
+  --l-surface: #0a1117;
   --l-line: rgba(255, 255, 255, 0.1);
-  --l-line-strong: #5b6880;
-  --l-text: #f4f7fb;
-  --l-muted: #a9b4c6;
+  --l-line-strong: #5e6b78;
+  --l-text: #f5f7fa;
+  --l-muted: #9aa6b4;
   --l-accent: #2dd4b4;
   --l-accent-hover: #5ee3c9;
-  --l-blue: #2f6bff;
+  --l-secondary: #0297de;
+  --l-warning: #fc734d;
 
   position: relative;
-  /* Above the app's fixed graph-paper backdrop, which this page replaces. */
   z-index: 1;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--l-text);
   background-color: var(--l-bg);
-  background-image: radial-gradient(
-    rgba(255, 255, 255, 0.07) 1px,
-    transparent 1px
-  );
-  background-size: 22px 22px;
-  font-family: var(--font-jakarta), system-ui, sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
   line-height: 1.6;
 }
@@ -42,7 +37,7 @@
 /* The page owns the whole viewport: same ground in the overscroll, and the
    app nav (shown to anyone signed in) stays out of the way. */
 :global(body):has(.landing) {
-  background: #070b14;
+  background: #02070a;
 }
 
 :global(body):has(.landing) :global(.app-nav) {
@@ -59,8 +54,9 @@
   }
 }
 
+/* Labels, numbers and status pills only. */
 .mono {
-  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-family: var(--font-numeric);
   font-weight: 500;
   letter-spacing: -0.01em;
 }
@@ -91,11 +87,13 @@
   gap: 16px;
 }
 
+/* Size only: weight, spacing and the teal stop come from .wordmark in
+   globals.css, via the Wordmark component. */
 .wordmark {
-  font-weight: 800;
-  font-size: 1.35rem;
-  letter-spacing: -0.035em;
-  color: var(--l-accent);
+  font-size: 1.4rem;
+}
+
+.wordmarkLink {
   text-decoration: none;
   border-radius: 4px;
 }
@@ -190,7 +188,39 @@
   grid-template-columns: minmax(0, 1.02fr) minmax(0, 1fr);
   align-items: center;
   gap: 48px;
-  padding: 56px 0 72px;
+  padding: 56px 0 120px;
+}
+
+/* The one background on the page: a glow rising from the bottom edge, full
+   bleed whatever the content column, and nothing else behind it. Decorative;
+   the cards it lights sit on opaque surfaces. */
+.hero::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 100vw;
+  margin-left: -50vw;
+  pointer-events: none;
+  background-color: #02070a;
+  background-image:
+    radial-gradient(
+      ellipse 18% 26% at 70% 104%,
+      rgba(220, 255, 248, 0.7),
+      rgba(220, 255, 248, 0) 70%
+    ),
+    radial-gradient(
+      ellipse 34% 60% at 58% 106%,
+      rgba(45, 212, 180, 0.95),
+      rgba(45, 212, 180, 0) 70%
+    ),
+    radial-gradient(
+      ellipse 36% 70% at 88% 100%,
+      rgba(2, 151, 222, 0.95),
+      rgba(2, 151, 222, 0) 70%
+    );
 }
 
 .heroText {
@@ -206,16 +236,18 @@
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--l-text);
-  font-size: 0.82rem;
+  font-family: var(--font-numeric);
+  font-size: 0.76rem;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .heroTitle {
   margin: 0 0 20px;
   font-size: clamp(2.4rem, 5.4vw, 4rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.04;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.04em;
   color: var(--l-text);
 }
 
@@ -246,85 +278,6 @@
   min-height: 600px;
 }
 
-/* Soft teal glow behind the cards. */
-.visual::before {
-  content: "";
-  position: absolute;
-  inset: -12% -18%;
-  z-index: 0;
-  background: radial-gradient(
-    ellipse at 50% 50%,
-    rgba(45, 212, 180, 0.16),
-    transparent 62%
-  );
-  pointer-events: none;
-}
-
-/* Full bleed: as wide as the viewport whatever the content column, so the
-   line runs edge to edge. Its overflow stays hidden on purpose: the path's
-   ends lie outside the viewBox, and this edge is what cuts them. */
-.streak {
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 50%;
-  width: 100vw;
-  height: 100%;
-  margin-left: -50vw;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-/* One spark, once every seven seconds: about 2.6s crossing, then a rest. The
-   path is measured as 1000 units (pathLength), so these lengths hold at any
-   width. The tail is 70 long with a 22-long white head at its leading end;
-   both start just before the path and finish just past it. */
-.sparkGlow,
-.sparkTail {
-  stroke-dasharray: 70 2000;
-  stroke-dashoffset: 70;
-  animation: sparkTail 7s infinite;
-}
-
-.sparkGlow {
-  opacity: 0.22;
-}
-
-.sparkHead {
-  stroke-dasharray: 22 2000;
-  stroke-dashoffset: 22;
-  animation: sparkHead 7s infinite;
-}
-
-@keyframes sparkTail {
-  0% {
-    stroke-dashoffset: 70;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
-  }
-  38%,
-  100% {
-    stroke-dashoffset: -1000;
-  }
-}
-
-@keyframes sparkHead {
-  0% {
-    stroke-dashoffset: 22;
-    animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
-  }
-  38%,
-  100% {
-    stroke-dashoffset: -1048;
-  }
-}
-
-/* Reduced motion: the line and glints stay, the spark is never drawn. */
-@media (prefers-reduced-motion: reduce) {
-  .spark {
-    display: none;
-  }
-}
-
 .card {
   position: absolute;
   border-radius: 16px;
@@ -348,6 +301,7 @@
 }
 
 .chip {
+  font-family: var(--font-numeric);
   padding: 3px 10px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -409,6 +363,7 @@
   bottom: 4px;
   transform: translateX(-12px);
   white-space: nowrap;
+  color: var(--l-warning);
 }
 
 .bandTrack {
@@ -432,7 +387,7 @@
 .floorMark {
   width: 2px;
   height: 18px;
-  background: var(--l-muted);
+  background: var(--l-warning);
   border-radius: 1px;
 }
 
@@ -491,6 +446,7 @@
 }
 
 .proposalLabel {
+  font-family: var(--font-numeric);
   margin: 0 0 12px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -501,7 +457,7 @@
 
 .proposalClient {
   margin: 0;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 1.05rem;
   letter-spacing: -0.01em;
 }
@@ -564,7 +520,7 @@
   left: 0;
   width: min(250px, 47%);
   padding: 16px 18px;
-  background: var(--l-surface-2);
+  background: var(--l-surface);
   border: 1px solid var(--l-line);
 }
 
@@ -584,8 +540,11 @@
 }
 
 .rateTier {
+  font-family: var(--font-numeric);
+  font-size: 0.72rem;
   flex: none;
-  width: 3.4em;
+  width: 4.6em;
+  white-space: nowrap;
   color: var(--l-muted);
 }
 
@@ -600,8 +559,8 @@
 .sectionTitle {
   margin: 0 0 32px;
   font-size: clamp(1.8rem, 3.6vw, 2.5rem);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   line-height: 1.1;
 }
 
@@ -621,10 +580,11 @@
   padding: 26px;
   border-radius: 16px;
   border: 1px solid var(--l-line);
-  background: rgba(14, 21, 36, 0.85);
+  background: var(--l-surface);
 }
 
 .stepNumber {
+  font-family: var(--font-numeric);
   display: block;
   margin-bottom: 14px;
   font-size: 0.85rem;
@@ -634,7 +594,7 @@
 .stepTitle {
   margin: 0 0 8px;
   font-size: 1.15rem;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.015em;
 }
 
@@ -659,7 +619,7 @@
   padding: 28px;
   border-radius: 16px;
   border: 1px solid var(--l-line);
-  background: rgba(14, 21, 36, 0.85);
+  background: var(--l-surface);
 }
 
 .planFounder {
@@ -671,7 +631,7 @@
 .planName {
   margin: 0 0 8px;
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .planPrice {
@@ -794,6 +754,11 @@
   font-size: 1.1rem;
 }
 
+.maker {
+  font-size: 0.78rem;
+  color: var(--l-muted);
+}
+
 .footerLinks {
   display: flex;
   gap: 20px;
@@ -845,26 +810,12 @@
     margin: 0 auto;
   }
 
-  /* Stacked, the hero is tall and the text sits on top: the streak keeps to
-     the lower part, behind the cards, rather than cutting through the H1. */
-  .streak {
-    top: auto;
-    bottom: 0;
-    height: 700px;
-  }
-
   .steps {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* The streak is drawn for the wide layout; below this it would cut across the
-   stacked cards, so it goes. */
 @media (max-width: 767px) {
-  .streak {
-    display: none;
-  }
-
   .navSection {
     display: none;
   }

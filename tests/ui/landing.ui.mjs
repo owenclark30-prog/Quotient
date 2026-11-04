@@ -115,6 +115,34 @@ async function copyRules(page, label) {
   check(`${label}: proposal monthly then setup`, totals.join(" | "), "Monthly £380 | Setup £760");
   check(`${label}: app nav hidden`, await page.locator(".app-nav").count(), 0);
   check(`${label}: no rate card setup bullet`, /rate card set up for you/i.test(text), false);
+  check(`${label}: never says Quotient`, /quotient/i.test(text), false);
+  check(`${label}: page title`, await page.title(), "Worthmark. Price every client from their own numbers");
+  const marks = await page.locator(".wordmark").evaluateAll((els) => els.map((e) => {
+    const stop = e.querySelector(".wordmark-stop");
+    return `${e.textContent}|${getComputedStyle(e).fontWeight}|${stop ? getComputedStyle(stop).color : "none"}`;
+  }));
+  check(`${label}: wordmark in nav and footer, 700, teal stop`, marks.join(" "), "Worthmark.|700|rgb(45, 212, 180) Worthmark.|700|rgb(45, 212, 180)");
+  check(`${label}: footer says A Slipway product`, await page.locator("footer").getByText("A Slipway product", { exact: true }).count(), 1);
+
+  // Type: Instrument Sans everywhere, JetBrains Mono only for labels and
+  // numbers; headings 700 with -0.04em on the large ones.
+  const type = await page.evaluate(() => {
+    const fam = (el) => getComputedStyle(el).fontFamily;
+    const h1 = getComputedStyle(document.querySelector("h1"));
+    return {
+      body: fam(document.body),
+      price: fam(document.querySelector("[class*='suggestedValue']")),
+      h1: `${h1.fontWeight} ${(parseFloat(h1.letterSpacing) / parseFloat(h1.fontSize)).toFixed(2)}`,
+      h2: getComputedStyle(document.querySelector("h2")).fontWeight,
+      // next/font names its families after the font, with a hash.
+      loaded: [...document.fonts].filter((f) => f.status === "loaded").map((f) => f.family).join(","),
+    };
+  });
+  check(`${label}: body in Instrument Sans`, /Instrument[ _]Sans/.test(type.body), true);
+  check(`${label}: numbers in JetBrains Mono`, /JetBrains[ _]Mono/.test(type.price), true);
+  check(`${label}: H1 weight 700, tracking -0.04em`, type.h1, "700 -0.04");
+  check(`${label}: H2 weight 700`, type.h2, "700");
+  check(`${label}: old fonts gone`, /Jakarta|Plex/.test(type.body + type.price + type.loaded), false);
 
   // Footer: Privacy and Terms are placeholders, not links to a missing page.
   const legal = await page.locator("footer li").evaluateAll((items) => items.map((li) => `${li.textContent.trim()}:${li.querySelector("a") ? "link" : "text"}`));
@@ -197,7 +225,6 @@ async function mobile(base, label) {
   await page.goto(base);
   await page.waitForTimeout(600);
   check(`${label} 375px: no horizontal scroll`, await page.evaluate(() => document.documentElement.scrollWidth <= 375), true);
-  check(`${label} 375px: streak hidden`, await page.locator("svg[class*='streak']").isVisible(), false);
   const layout = await page.evaluate(() => {
     const r = (s) => document.querySelector(s).getBoundingClientRect();
     const text = r("[class*='heroText']");
@@ -248,45 +275,36 @@ async function mobile(base, label) {
   check("live: How it works link", await page.getByRole("link", { name: "How it works", exact: true }).getAttribute("href"), "#how");
   check("live: Pricing link", await page.getByRole("link", { name: "Pricing", exact: true }).getAttribute("href"), "#pricing");
   check("live: See how it works link", await page.getByRole("link", { name: "See how it works" }).getAttribute("href"), "#how");
-  check("live: streak is aria-hidden", await page.locator("svg[class*='streak']").getAttribute("aria-hidden"), "true");
-  check("live: streak shown on desktop", await page.locator("svg[class*='streak']").isVisible(), true);
-
-  // One continuous line, edge to edge: the SVG spans the viewport, and the
-  // path crosses its left and right edges inside the box, so it enters and
-  // leaves through the sides of the screen with no gap at either end.
-  const streak = await page.evaluate(() => {
-    const svg = document.querySelector("svg[class*='streak']");
-    const line = svg.querySelector("path[stroke-width='2.5']");
-    const box = svg.getBoundingClientRect();
-    const total = line.getTotalLength();
-    const pts = Array.from({ length: 401 }, (_, i) => line.getPointAtLength((total * i) / 400));
-    const crossing = (x) => { const i = pts.findIndex((p) => p.x >= x); return i > 0 ? pts[i] : null; };
-    const enter = crossing(0), exit = crossing(1440);
-    const hero = svg.parentElement.getBoundingClientRect();
-    const cards = [...document.querySelectorAll("[class*='visual'] > [class*='card']")];
+  // The hero's one background: the bottom glow, full bleed, and nothing else
+  // on the page (no streak, dots, grid or second glow).
+  const ground = await page.evaluate(() => {
+    const hero = document.querySelector("section[aria-labelledby='hero-title']");
+    const before = getComputedStyle(hero, "::before");
+    const box = hero.getBoundingClientRect();
+    const others = [...document.querySelectorAll("[class*='landing'], [class*='landing'] *")]
+      // The cards' own fills (the price band's track) are content, not a backdrop.
+      .filter((el) => el !== hero && !el.closest("[class*='visual']"))
+      .flatMap((el) => [getComputedStyle(el).backgroundImage, getComputedStyle(el, "::before").backgroundImage, getComputedStyle(el, "::after").backgroundImage])
+      .filter((b) => b && b !== "none");
     return {
-      fullWidth: box.left <= 0.5 && box.right >= document.documentElement.clientWidth - 0.5,
-      ends: pts[0].x < 0 && pts[pts.length - 1].x > 1440,
-      enterBottomLeft: !!enter && enter.y > 600 && enter.y < 720,
-      exitTopRight: !!exit && exit.y > 0 && exit.y < 120,
-      spansHero: Math.abs(box.top - hero.top) < 1 && Math.abs(box.bottom - hero.bottom) < 1,
-      behindCards: cards.every((c) => Number(getComputedStyle(c).zIndex) > Number(getComputedStyle(svg).zIndex)),
-      noScroll: document.documentElement.scrollWidth <= document.documentElement.clientWidth,
-      glints: svg.querySelectorAll("path[d$='h 0.01']").length,
-      sparks: svg.querySelectorAll("[class*='spark'] path").length,
-      animation: getComputedStyle(svg.querySelector("[class*='sparkHead']")).animationDuration,
+      gradients: (before.backgroundImage.match(/radial-gradient/g) || []).length,
+      colours: ["rgba(220, 255, 248, 0.7)", "rgba(45, 212, 180, 0.95)", "rgba(2, 151, 222, 0.95)"].every((c) => before.backgroundImage.includes(c)),
+      base: before.backgroundColor,
+      fullBleed: Math.abs(parseFloat(before.width) - document.documentElement.clientWidth) < 1,
+      height: Math.abs(parseFloat(before.height) - box.height) < 1,
+      svg: document.querySelectorAll("[class*='landing'] svg").length,
+      others: others.join(" | ") || "none",
+      bodyBg: getComputedStyle(document.body).backgroundColor,
     };
   });
-  check("live: streak spans the full viewport width", streak.fullWidth, true);
-  check("live: streak spans the hero height", streak.spansHero, true);
-  check("live: path ends lie outside the viewBox", streak.ends, true);
-  check("live: line enters through the left edge, low", streak.enterBottomLeft, true);
-  check("live: line leaves through the right edge, high", streak.exitTopRight, true);
-  check("live: streak sits behind every card", streak.behindCards, true);
-  check("live: full-bleed streak causes no horizontal scroll", streak.noScroll, true);
-  check("live: no static glints on the line", streak.glints, 0);
-  check("live: one spark (glow, tail, head)", streak.sparks, 3);
-  check("live: spark runs every 7s", streak.animation, "7s");
+  check("live: hero glow is three radial gradients", ground.gradients, 3);
+  check("live: hero glow uses the brand colours", ground.colours, true);
+  check("live: hero ground is midnight", ground.base, "rgb(2, 7, 10)");
+  check("live: hero glow is full bleed", ground.fullBleed, true);
+  check("live: hero glow covers the hero", ground.height, true);
+  check("live: no streak SVG left", ground.svg, 0);
+  check("live: no other background images (dots, grid, glow)", ground.others, "none");
+  check("live: page ground is midnight", ground.bodyBg, "rgb(2, 7, 10)");
 
   // Every card overlaps at least one other, and none covers another's text.
   const overlap = await page.evaluate(() => {
@@ -377,35 +395,14 @@ async function mobile(base, label) {
   slots = { used: 3, limit: 25, remaining: 22 };
 }
 
-// A tablet width keeps the streak; a phone stacks the cards.
+// Tablet width, then a phone, which stacks the cards.
 {
   const page = await newPage(800, 1000);
   await page.goto(`${LIVE}/waitlist`);
-  check("live 800px: streak shown", await page.locator("svg[class*='streak']").isVisible(), true);
-  check("live 800px: streak stays below the headline", await page.evaluate(() =>
-    document.querySelector("svg[class*='streak']").getBoundingClientRect().top >= document.querySelector("h1").getBoundingClientRect().bottom), true);
   check("live 800px: no horizontal scroll", await page.evaluate(() => document.documentElement.scrollWidth <= 800), true);
   await page.context().close();
 }
 await mobile(`${LIVE}/waitlist`, "live");
-
-// Reduced motion: the line stays, the spark is gone.
-{
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, reducedMotion: "reduce" });
-  const page = await context.newPage();
-  await page.route("**/api/billing/founder-slots", (route) => route.fulfill({ json: slots }));
-  await page.goto(`${LIVE}/waitlist`);
-  const still = await page.evaluate(() => {
-    const svg = document.querySelector("svg[class*='streak']");
-    return {
-      line: getComputedStyle(svg).display !== "none",
-      spark: getComputedStyle(svg.querySelector("[class*='spark']")).display,
-    };
-  });
-  check("reduced motion: line still drawn", still.line, true);
-  check("reduced motion: no spark", still.spark, "none");
-  await context.close();
-}
 
 // ============================================================ waitlist mode
 

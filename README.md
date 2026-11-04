@@ -1,4 +1,4 @@
-# Quotient
+# Worthmark
 
 Pricing/proposal calculator. Set a tier and client, see live pricing, and
 generate a printable proposal you can save and revisit. Email/password auth
@@ -270,14 +270,16 @@ out who is already on the list.
 ## Branching and deploys
 
 `main` is the trunk and Netlify's production branch. Pushing to `main` deploys
-to https://quotient-proposals.netlify.app.
+to the production site, https://worthmark.netlify.app. The code never hardcodes
+that address: absolute URLs come from `NEXT_PUBLIC_SITE_URL` (see
+`lib/site-url.ts`), and Stripe's return URLs from the request origin.
 
 Netlify builds whichever branch is set as *Production branch* in its build
 settings — it does not follow GitHub's default branch, so those two settings
 have to be changed together.
 
 Other branches get Netlify branch deploys at
-`<branch-name>--quotient-proposals.netlify.app`, which is the place to check a
+`<branch-name>--<netlify-site-name>.netlify.app`, which is the place to check a
 risky change before it reaches production.
 
 ## Routes
@@ -335,23 +337,26 @@ is changed in one place.
 
 Two things are deliberate rather than accidental:
 
-- **The accent is Petronas teal (`#00d2be`) and it takes dark ink, not white.**
-  At 10.04:1 on the page background it's bright enough to serve as link, border
-  and wordmark colour directly — but that same brightness means white text on
-  top of it fails badly (1.92:1). Filled surfaces therefore use `--accent-ink`
-  (`#07120f`, 9.94:1). Never put `#fff` on the accent.
+- **The accent is teal (`#2DD4B4`) and it takes dark ink, not white.** At
+  10.8:1 on the midnight ground (`#02070A`) it's bright enough to serve as link,
+  border and wordmark colour directly, but that same brightness means white
+  text on top of it fails. Filled surfaces therefore use `--accent-ink`
+  (midnight, 10.8:1). Never put `#fff` on the accent. `--secondary` (`#0297DE`)
+  and `--warning` (`#FC734D`, warnings and the cost floor) complete the set.
 - **`--border` vs `--border-strong`.** `--border` is a decorative hairline.
   Anything that bounds a control (inputs, hover states, the account menu) uses
   `--border-strong`, which clears the 3:1 WCAG ratio for non-text contrast.
-- **`--grid-line` is a contrast budget.** `body::before` paints a fixed graph-
-  paper grid behind the app. Text can land on a line, so the line's alpha costs
-  contrast: at `0.032` the worst case (muted text on a line) is 5.53:1 versus
-  5.85:1 on the flat ground. Around `0.06` that headroom is spent — check
-  before raising it.
+- **App screens are plain midnight.** No texture or glow behind the app. The
+  landing hero's bottom glow is the one background on the site.
 
-The brand wordmark is **"Quotient."**, full stop included, and appears in three
-places: the hero, the nav brand, and the login heading. It deliberately never
-appears on a proposal — that document carries the *agency's* name, because they
+Type: Instrument Sans (400 to 700) for everything, JetBrains Mono (400, 500)
+for labels, numbers and status pills only. Both load through `next/font` in
+`app/layout.tsx`, so they are self-hosted and the browser never calls Google.
+
+The brand wordmark is **"Worthmark."**, the full stop in teal. It is one
+component, `app/components/Wordmark.tsx`, used in the app nav, the home hero,
+the login heading and the landing page's nav and footer. It deliberately never
+appears on a proposal: that document carries the *agency's* name, because they
 send it to their own clients.
 
 `.proposal` is a **light island**: it re-declares the same tokens with light
